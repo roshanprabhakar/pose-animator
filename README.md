@@ -34,7 +34,7 @@ The static image demo shows the avatar positioned from a single image.
 
 ## Build And Run
 
-Install dependencies and prepare the build directory:
+Install    dependencies and prepare the build directory:
 
 ```sh
 yarn
