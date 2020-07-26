@@ -21,10 +21,17 @@ import * as tf from '@tensorflow/tfjs';
 import * as paper from 'paper';
 import dat from 'dat.gui';
 import Stats from 'stats.js';
-import "babel-polyfill";
+import 'babel-polyfill';
 
-import {drawKeypoints, drawPoint, drawSkeleton, isMobile, toggleLoadingUI, setStatusText} from './utils/demoUtils';
-import {SVGUtils} from './utils/svgUtils'
+import {
+    drawKeypoints,
+    drawPoint,
+    drawSkeleton,
+    isMobile,
+    toggleLoadingUI,
+    setStatusText,
+} from './utils/demoUtils';
+import {SVGUtils} from './utils/svgUtils';
 import {PoseIllustration} from './illustrationGen/illustration';
 import {Skeleton, facePartName2Index} from './illustrationGen/skeleton';
 import {FileUtils} from './utils/fileUtils';
@@ -173,12 +180,13 @@ function detectPoseInRealTime(video) {
         // must be transmitted
         faceDetection = await facemesh.estimateFaces(input, false, false);
 
+        // eslint-disable-next-line camelcase
         let all_poses = await posenet.estimatePoses(video, {
             flipHorizontal: true,
             decodingMethod: 'multi-person',
             maxDetections: 1,
             scoreThreshold: minPartConfidence,
-            nmsRadius: nmsRadius
+            nmsRadius: nmsRadius,
         });
 
         // must be transmitted
@@ -246,7 +254,7 @@ export async function bindPage() {
         outputStride: defaultStride,
         inputResolution: defaultInputResolution,
         multiplier: defaultMultiplier,
-        quantBytes: defaultQuantBytes
+        quantBytes: defaultQuantBytes,
     });
     setStatusText('Loading FaceMesh model...');
     facemesh = await facemesh_module.load();
@@ -276,7 +284,7 @@ export async function bindPage() {
 navigator.getUserMedia = navigator.getUserMedia ||
     navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 FileUtils.setDragDropHandler((result) => {
-    parseSVG(result)
+    parseSVG(result);
 });
 
 async function parseSVG(target) {
