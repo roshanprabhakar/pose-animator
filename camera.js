@@ -72,6 +72,106 @@ const avatarSvgs = {
     'tom-nook': tomNookSVG.default,
 };
 
+// WebRTC connection nodes
+let pc1;
+let pc2;
+
+// WebRTC streaming channel
+let channel;
+
+function getOtherPeerConnection(pc) {
+    if (pc === pc1) {
+        return pc2;
+    } else return pc1;
+}
+
+function onIceCandidate(pc, event) {
+    (getOtherPeerConnection(pc)).addIceCandidate(event.candidate);
+}
+
+async function initiateRtcStreamingChannel() {
+
+    // setting up pc1 (receiving end)
+    pc1 = new RTCPeerConnection({});
+    pc1.addEventListener('icecandidate', e => onIceCandidate(pc1, e));
+
+    const dataChannel = pc1.createDataChannel("pose-animator data channel");
+
+    dataChannel.onmessage = function (event) {
+        let poses = JSON.parse(event.data);
+
+        // clears the output canvas
+        keypointCtx.clearRect(0, 0, videoWidth, videoHeight);
+        canvasScope.project.clear();
+
+        // projects the poses skeleton on the existing svg skeleton
+        Skeleton.flipPose(poses[0]);
+        illustration.updateSkeleton(poses[0], null);
+        illustration.draw(canvasScope, videoWidth, videoHeight);
+
+        canvasScope.project.activeLayer.scale(
+            canvasWidth / videoWidth,
+            canvasHeight / videoHeight,
+            new canvasScope.Point(0, 0));
+    }
+
+    // setting up pc2 (transmitting end)
+    pc2 = new RTCPeerConnection({});
+    pc2.addEventListener('icecandidate', e => onIceCandidate(pc2, e));
+
+    pc2.ondatachannel = function (event) {
+        channel = event.channel;
+    }
+
+    // connects pc1 and pc2
+    let offer = await pc1.createOffer({offerToReceiveAudio: 0, offerToReceiveVideo: 0});
+
+    await pc2.setRemoteDescription(offer);
+    await pc1.setLocalDescription(offer);
+
+    let answer = await pc2.createAnswer();
+
+    await pc1.setRemoteDescription(answer);
+    await pc2.setLocalDescription(answer);
+
+    // get elements for pose animator to access
+    const canvas = document.getElementById("output");
+    const keypointCanvas = document.getElementById("keypoints");
+    const videoCtx = canvas.getContext('2d');
+    const keypointCtx = keypointCanvas.getContext('2d');
+
+    // setup html dimensions
+    canvas.width = videoWidth;
+    canvas.height = videoHeight;
+    keypointCanvas.width = videoWidth;
+    keypointCanvas.height = videoHeight;
+}
+
+async function transmit() {
+
+    // initializes poses
+    let poses = [];
+
+    // populates poses
+    let all_poses = await posenet.estimatePoses(video, {
+        flipHorizontal: true,
+        decodingMethod: 'multi-person',
+        maxDetections: 1,
+        scoreThreshold: minPartConfidence,
+        nmsRadius: nmsRadius,
+    });
+
+    // merges all poses
+    poses = poses.concat(all_poses);
+
+    // transmit poses object
+    channel.send(JSON.stringify(poses));
+
+    // loop back
+    setTimeout(transmit, 10);
+}
+
+
 /**
  * Loads a the camera to be used in the demo
  *
@@ -149,79 +249,8 @@ function setupGui(cameras) {
  * Sets up a frames per second panel on the top-left of the window
  */
 function setupFPS() {
-    stats.showPanel(0);  // 0: fps, 1: ms, 2: mb, 3+: custom
+    stats.showPanel(0);
     document.getElementById('main').appendChild(stats.dom);
-}
-
-/**
- * Feeds an image to posenet to estimate poses - this is where the magic
- * happens. This function loops with a requestAnimationFrame method.
- */
-function detectPoseInRealTime(video) {
-    const canvas = document.getElementById('output');
-    const keypointCanvas = document.getElementById('keypoints');
-    const videoCtx = canvas.getContext('2d');
-    const keypointCtx = keypointCanvas.getContext('2d');
-
-    canvas.width = videoWidth;
-    canvas.height = videoHeight;
-    keypointCanvas.width = videoWidth;
-    keypointCanvas.height = videoHeight;
-
-    async function poseDetectionFrame() {
-        // Begin monitoring code for frames per second
-        stats.begin();
-
-        let poses = [];
-
-        // Creates a tensor from an image
-        const input = tf.browser.fromPixels(canvas);
-
-        // must be transmitted
-        faceDetection = await facemesh.estimateFaces(input, false, false);
-
-        // eslint-disable-next-line camelcase
-        let all_poses = await posenet.estimatePoses(video, {
-            flipHorizontal: true,
-            decodingMethod: 'multi-person',
-            maxDetections: 1,
-            scoreThreshold: minPartConfidence,
-            nmsRadius: nmsRadius,
-        });
-
-        // must be transmitted
-        poses = poses.concat(all_poses);
-
-        input.dispose();
-
-        keypointCtx.clearRect(0, 0, videoWidth, videoHeight);
-
-        canvasScope.project.clear();
-
-        if (poses.length >= 1 && illustration) {
-            Skeleton.flipPose(poses[0]);
-
-            if (faceDetection && faceDetection.length > 0) {
-                let face = Skeleton.toFaceFrame(faceDetection[0]);
-                illustration.updateSkeleton(poses[0], face);
-            } else {
-                illustration.updateSkeleton(poses[0], null);
-            }
-            illustration.draw(canvasScope, videoWidth, videoHeight);
-        }
-
-        canvasScope.project.activeLayer.scale(
-            canvasWidth / videoWidth,
-            canvasHeight / videoHeight,
-            new canvasScope.Point(0, 0));
-
-        // End monitoring code for frames per second
-        stats.end();
-
-        requestAnimationFrame(poseDetectionFrame);
-    }
-
-    poseDetectionFrame();
 }
 
 function setupCanvas() {
@@ -242,7 +271,7 @@ function setupCanvas() {
 
 /**
  * Kicks off the demo by loading the posenet model, finding and loading
- * available camera devices, and setting off the detectPoseInRealTime function.
+ * available camera devices, and setting off pose transmission device.
  */
 export async function bindPage() {
     setupCanvas();
@@ -278,7 +307,6 @@ export async function bindPage() {
     setupFPS();
 
     toggleLoadingUI(false);
-    detectPoseInRealTime(video, posenet);
 }
 
 navigator.getUserMedia = navigator.getUserMedia ||
@@ -294,4 +322,4 @@ async function parseSVG(target) {
     illustration.bindSkeleton(skeleton, svgScope);
 }
 
-bindPage();
+bindPage().then(initiateRtcStreamingChannel).then(transmit);
