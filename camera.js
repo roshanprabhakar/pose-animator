@@ -82,7 +82,7 @@ let channel;
 // Analysis monitors
 // const monitors = ['bytesReceived', 'packetsReceived', 'headerBytesReceived', 'packetsLost', 'totalDecodeTime', 'totalInterFrameDelay', 'codecId'];
 const monitors = ['bytesReceived'];
-let taken = []; // already queried by wrtc stats api
+const bandwidthLimit = 8; //kbits/second
 
 let startTime;
 
@@ -139,11 +139,13 @@ async function initiateRtcStreamingChannel() {
         offerToReceiveAudio: 0,
         offerToReceiveVideo: 0,
     });
+    offer.sdp = setMediaBitrate(offer.sdp, "application", bandwidthLimit);
 
     await pc2.setRemoteDescription(offer);
     await pc1.setLocalDescription(offer);
 
     let answer = await pc2.createAnswer();
+    answer.sdp = setMediaBitrate(answer.sdp, "application", bandwidthLimit);
 
     await pc1.setRemoteDescription(answer);
     await pc2.setLocalDescription(answer);
@@ -347,10 +349,11 @@ function getConnectionStats() {
             Object.keys(report).forEach(statName => {
                 if (monitors.includes(statName)) {
 
-                    let value = parseInt(report[statName]);
-                    let sessionAvg = value / ((new Date().getTime() - startTime) / 1000);
+                    let bytesIntegral = parseInt(report[statName]);
+                    let timeIntegral = (new Date().getTime() - startTime) / 1000;
+                    let kbitsPerSecond = bytesIntegral / timeIntegral / 1000;
 
-                    statsOutput += `<strong>${statName}:</strong> ${sessionAvg}<br>\n`;
+                    statsOutput += `<strong>${statName}:</strong> ${kbitsPerSecond * 8} kb/s <br>\n`;
                 }
             });
         });
@@ -362,5 +365,49 @@ function getConnectionStats() {
 function startTimer() {
     startTime = new Date().getTime();
 }
+
+function setMediaBitrate(sdp, media, bitrate) {
+    var lines = sdp.split("\n");
+    // for (var i = 0; i < lines.length; i++) {
+    //     if (lines[i].indexOf("m=") === 0) {
+    //         console.log(lines[i]);
+    //     }
+    // }
+    var line = -1;
+    for (var i = 0; i < lines.length; i++) {
+        if (lines[i].indexOf("m="+media) === 0) {
+            line = i;
+            break;
+        }
+    }
+    if (line === -1) {
+        console.debug("Could not find the m line for", media);
+        return sdp;
+    }
+    console.debug("Found the m line for", media, "at line", line);
+
+    // Pass the m line
+    line++;
+
+    // Skip i and c lines
+    while(lines[line].indexOf("i=") === 0 || lines[line].indexOf("c=") === 0) {
+        line++;
+    }
+
+    // If we're on a b line, replace it
+    if (lines[line].indexOf("b") === 0) {
+        console.debug("Replaced b line at line", line);
+        lines[line] = "b=AS:"+bitrate;
+        return lines.join("\n");
+    }
+
+    // Add a new b line
+    console.debug("Adding new b line before line", line);
+    var newLines = lines.slice(0, line);
+    newLines.push("b=AS:"+bitrate);
+    newLines = newLines.concat(lines.slice(line, lines.length));
+    return newLines.join("\n");
+}
+
 
 bindPage().then(initiateRtcStreamingChannel).then(startTimer).then(transmit);

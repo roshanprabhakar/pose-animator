@@ -33,9 +33,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="429034fc-be76-4799-8bec-fcef68e024fd" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/camera.js" beforeDir="false" afterPath="$PROJECT_DIR$/camera.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,6 +46,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectId" id="1fANruSIlsDErPKmj8ys5FFwqyJ" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -79,6 +80,7 @@
       <workItem from="1595720742327" duration="883000" />
       <workItem from="1595901450281" duration="573000" />
       <workItem from="1595997052116" duration="3609000" />
+      <workItem from="1596012821922" duration="1342000" />
     </task>
     <servers />
   </component>
