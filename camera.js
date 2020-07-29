@@ -79,10 +79,19 @@ let pc2;
 // WebRTC streaming channel
 let channel;
 
+// Analysis monitors
+// const monitors = ['bytesReceived', 'packetsReceived', 'headerBytesReceived', 'packetsLost', 'totalDecodeTime', 'totalInterFrameDelay', 'codecId'];
+const monitors = ['bytesReceived'];
+let taken = []; // already queried by wrtc stats api
+
+let startTime;
+
 function getOtherPeerConnection(pc) {
     if (pc === pc1) {
         return pc2;
-    } else return pc1;
+    } else {
+        return pc1;
+    }
 }
 
 function onIceCandidate(pc, event) {
@@ -95,9 +104,9 @@ async function initiateRtcStreamingChannel() {
     pc1 = new RTCPeerConnection({});
     pc1.addEventListener('icecandidate', e => onIceCandidate(pc1, e));
 
-    const dataChannel = pc1.createDataChannel("pose-animator data channel");
+    const dataChannel = pc1.createDataChannel('pose-animator data channel');
 
-    dataChannel.onmessage = function (event) {
+    dataChannel.onmessage = function(event) {
         let poses = JSON.parse(event.data);
 
         // clears the output canvas
@@ -113,18 +122,23 @@ async function initiateRtcStreamingChannel() {
             canvasWidth / videoWidth,
             canvasHeight / videoHeight,
             new canvasScope.Point(0, 0));
-    }
+    };
 
     // setting up pc2 (transmitting end)
     pc2 = new RTCPeerConnection({});
     pc2.addEventListener('icecandidate', e => onIceCandidate(pc2, e));
 
-    pc2.ondatachannel = function (event) {
+    pc2.ondatachannel = function(event) {
         channel = event.channel;
-    }
+    };
+
+    let statsInterval = window.setInterval(getConnectionStats, 1000);
 
     // connects pc1 and pc2
-    let offer = await pc1.createOffer({offerToReceiveAudio: 0, offerToReceiveVideo: 0});
+    let offer = await pc1.createOffer({
+        offerToReceiveAudio: 0,
+        offerToReceiveVideo: 0,
+    });
 
     await pc2.setRemoteDescription(offer);
     await pc1.setLocalDescription(offer);
@@ -135,8 +149,8 @@ async function initiateRtcStreamingChannel() {
     await pc2.setLocalDescription(answer);
 
     // get elements for pose animator to access
-    const canvas = document.getElementById("output");
-    const keypointCanvas = document.getElementById("keypoints");
+    const canvas = document.getElementById('output');
+    const keypointCanvas = document.getElementById('keypoints');
     const videoCtx = canvas.getContext('2d');
     const keypointCtx = keypointCanvas.getContext('2d');
 
@@ -322,4 +336,31 @@ async function parseSVG(target) {
     illustration.bindSkeleton(skeleton, svgScope);
 }
 
-bindPage().then(initiateRtcStreamingChannel).then(transmit);
+// monitors inbound bytestream according to provided monitors
+function getConnectionStats() {
+
+    pc2.getStats(null).then(stats => {
+        let statsOutput = '';
+
+        stats.forEach(report => {
+
+            Object.keys(report).forEach(statName => {
+                if (monitors.includes(statName)) {
+
+                    let value = parseInt(report[statName]);
+                    let sessionAvg = value / ((new Date().getTime() - startTime) / 1000);
+
+                    statsOutput += `<strong>${statName}:</strong> ${sessionAvg}<br>\n`;
+                }
+            });
+        });
+        document.querySelector('#stats-box').innerHTML = statsOutput;
+    });
+    return 0;
+}
+
+function startTimer() {
+    startTime = new Date().getTime();
+}
+
+bindPage().then(initiateRtcStreamingChannel).then(startTimer).then(transmit);

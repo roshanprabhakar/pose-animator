@@ -32,7 +32,11 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="429034fc-be76-4799-8bec-fcef68e024fd" name="Default Changelist" comment="" />
+    <list default="true" id="429034fc-be76-4799-8bec-fcef68e024fd" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/camera.js" beforeDir="false" afterPath="$PROJECT_DIR$/camera.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -74,7 +78,7 @@
       <workItem from="1595657140289" duration="1596000" />
       <workItem from="1595720742327" duration="883000" />
       <workItem from="1595901450281" duration="573000" />
-      <workItem from="1595997052116" duration="1049000" />
+      <workItem from="1595997052116" duration="3609000" />
     </task>
     <servers />
   </component>
