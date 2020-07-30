@@ -17,23 +17,15 @@
 
 import * as posenet_module from '@tensorflow-models/posenet';
 import * as facemesh_module from '@tensorflow-models/facemesh';
-import * as tf from '@tensorflow/tfjs';
 import * as paper from 'paper';
 import dat from 'dat.gui';
 import Stats from 'stats.js';
 import 'babel-polyfill';
 
-import {
-    drawKeypoints,
-    drawPoint,
-    drawSkeleton,
-    isMobile,
-    toggleLoadingUI,
-    setStatusText,
-} from './utils/demoUtils';
+import {isMobile, setStatusText, toggleLoadingUI} from './utils/demoUtils';
 import {SVGUtils} from './utils/svgUtils';
 import {PoseIllustration} from './illustrationGen/illustration';
-import {Skeleton, facePartName2Index} from './illustrationGen/skeleton';
+import {Skeleton} from './illustrationGen/skeleton';
 import {FileUtils} from './utils/fileUtils';
 
 import * as girlSVG from './resources/illustration/girl.svg';
@@ -82,7 +74,7 @@ let channel;
 // Analysis monitors
 // const monitors = ['bytesReceived', 'packetsReceived', 'headerBytesReceived', 'packetsLost', 'totalDecodeTime', 'totalInterFrameDelay', 'codecId'];
 const monitors = ['bytesReceived'];
-const bandwidthLimit = 8; //kbits/second
+const bandwidthLimit = 12; //kbits/second
 
 let startTime;
 
@@ -341,6 +333,7 @@ async function parseSVG(target) {
 // monitors inbound bytestream according to provided monitors
 function getConnectionStats() {
 
+    let taken = [];
     pc2.getStats(null).then(stats => {
         let statsOutput = '';
 
@@ -351,9 +344,17 @@ function getConnectionStats() {
 
                     let bytesIntegral = parseInt(report[statName]);
                     let timeIntegral = (new Date().getTime() - startTime) / 1000;
-                    let kbitsPerSecond = bytesIntegral / timeIntegral / 1000;
+                    let kbytesPerSecond = bytesIntegral / timeIntegral / 1000;
 
-                    statsOutput += `<strong>${statName}:</strong> ${kbitsPerSecond * 8} kb/s <br>\n`;
+                    if (kbytesPerSecond !== 0 && !taken.includes(statName)) {
+                        if (statName === "bytesReceived") {
+                            statsOutput += `<strong>kilobit rate: </strong> ${kbytesPerSecond * 8} kb/s <br>\n`;
+                            taken.push(statName);
+                        } else {
+                            statsOutput += `<strong>${statName}:</strong> ${kbytesPerSecond * 8} kb/s <br>\n`;
+                            taken.push(statName);
+                        }
+                    }
                 }
             });
         });
@@ -368,11 +369,6 @@ function startTimer() {
 
 function setMediaBitrate(sdp, media, bitrate) {
     var lines = sdp.split("\n");
-    // for (var i = 0; i < lines.length; i++) {
-    //     if (lines[i].indexOf("m=") === 0) {
-    //         console.log(lines[i]);
-    //     }
-    // }
     var line = -1;
     for (var i = 0; i < lines.length; i++) {
         if (lines[i].indexOf("m="+media) === 0) {
@@ -409,5 +405,15 @@ function setMediaBitrate(sdp, media, bitrate) {
     return newLines.join("\n");
 }
 
+async function displaySourceVideo() {
+    video = document.getElementById("source-video");
+    const constraints = {
+        video: true,
+        audio: false
+    }
+    video.srcObject = await navigator.mediaDevices.getUserMedia(constraints);
+}
 
 bindPage().then(initiateRtcStreamingChannel).then(startTimer).then(transmit);
+displaySourceVideo()
+

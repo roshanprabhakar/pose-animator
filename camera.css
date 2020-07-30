@@ -1,0 +1,118 @@
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#video-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+.canvas-container {
+    width: 800px;
+    max-width: 50%;
+    /*max-height: 500px;*/
+    display: flex;
+    justify-content: center;
+    position: relative;
+    padding: 10px;
+    /*border: 10px solid;*/
+}
+
+.camera-canvas {
+    position: absolute;
+    transform: scale(0.5, 0.5);
+    transform-origin: 0 0;
+    left: 10px;
+    top: 10px;
+}
+
+#source-video {
+    max-width: 50%;
+    max-height: 70%;
+    -webkit-transform: scaleX(-1);
+    transform: scaleX(-1);
+}
+
+#main {
+    left: 0;
+    top: 0;
+    position: absolute;
+}
+
+.illustration-canvas {
+    border: 1px solid #eeeeee;
+}
+
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    color: black;
+}
+
+.footer-text {
+    max-width: 600px;
+    text-align: center;
+    margin: auto;
+}
+
+@media only screen and (max-width: 600px) {
+
+    .footer-text,
+    .dg {
+        /*display: none;*/
+    }
+}
+
+/*
+ *  The following loading spinner CSS is from SpinKit project
+ *  https://github.com/tobiasahlin/SpinKit
+ */
+.sk-spinner-pulse {
+    width: 20px;
+    height: 20px;
+    margin: auto 10px;
+    float: left;
+    background-color: #333;
+    border-radius: 100%;
+    -webkit-animation: sk-pulseScaleOut 1s infinite ease-in-out;
+    animation: sk-pulseScaleOut 1s infinite ease-in-out;
+}
+
+@-webkit-keyframes sk-pulseScaleOut {
+    0% {
+        -webkit-transform: scale(0);
+        transform: scale(0);
+    }
+
+    100% {
+        -webkit-transform: scale(1.0);
+        transform: scale(1.0);
+        opacity: 0;
+    }
+}
+
+@keyframes sk-pulseScaleOut {
+    0% {
+        -webkit-transform: scale(0);
+        transform: scale(0);
+    }
+
+    100% {
+        -webkit-transform: scale(1.0);
+        transform: scale(1.0);
+        opacity: 0;
+    }
+}
+
+.spinner-text {
+    float: left;
+}
+
