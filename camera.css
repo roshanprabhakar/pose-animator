@@ -116,3 +116,15 @@ body {
     float: left;
 }
 
+#stats-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    height: 100px;
+}
+
+#stats-box p {
+    width: 10%;
+}

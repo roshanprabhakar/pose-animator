@@ -98,22 +98,34 @@ async function initiateRtcStreamingChannel() {
 
     const dataChannel = pc1.createDataChannel('pose-animator data channel');
 
+    let messageCounter = 0;
     dataChannel.onmessage = function(event) {
-        let poses = JSON.parse(event.data);
 
-        // clears the output canvas
-        keypointCtx.clearRect(0, 0, videoWidth, videoHeight);
-        canvasScope.project.clear();
+        if (messageCounter % 2 === 0) {
+            let poses = JSON.parse(event.data);
 
-        // projects the poses skeleton on the existing svg skeleton
-        Skeleton.flipPose(poses[0]);
-        illustration.updateSkeleton(poses[0], null);
-        illustration.draw(canvasScope, videoWidth, videoHeight);
+            // clears the output canvas
+            keypointCtx.clearRect(0, 0, videoWidth, videoHeight);
+            canvasScope.project.clear();
 
-        canvasScope.project.activeLayer.scale(
-            canvasWidth / videoWidth,
-            canvasHeight / videoHeight,
-            new canvasScope.Point(0, 0));
+            // projects the poses skeleton on the existing svg skeleton
+            Skeleton.flipPose(poses[0]);
+            illustration.updateSkeleton(poses[0], null);
+            illustration.draw(canvasScope, videoWidth, videoHeight);
+
+            canvasScope.project.activeLayer.scale(
+                canvasWidth / videoWidth,
+                canvasHeight / videoHeight,
+                new canvasScope.Point(0, 0));
+        } else {
+
+            let timeAtTransmit = parseInt(event.data);
+            let currentTime = new Date().getTime();
+
+            document.getElementById("latency-box").innerHTML = `<strong>frame latency: </strong>${currentTime - timeAtTransmit} ms`;
+        }
+
+        messageCounter++;
     };
 
     // setting up pc2 (transmitting end)
@@ -124,7 +136,7 @@ async function initiateRtcStreamingChannel() {
         channel = event.channel;
     };
 
-    let statsInterval = window.setInterval(getConnectionStats, 1000);
+    let statsInterval = window.setInterval(getConnectionStats, 100);
 
     // connects pc1 and pc2
     let offer = await pc1.createOffer({
@@ -174,6 +186,7 @@ async function transmit() {
 
     // transmit poses object
     channel.send(JSON.stringify(poses));
+    channel.send(new Date().getTime());
 
     // loop back
     setTimeout(transmit, 10);
@@ -358,7 +371,7 @@ function getConnectionStats() {
                 }
             });
         });
-        document.querySelector('#stats-box').innerHTML = statsOutput;
+        document.querySelector('#bitstream-box').innerHTML = statsOutput;
     });
     return 0;
 }
