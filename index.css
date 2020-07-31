@@ -1,0 +1,38 @@
+body {
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    /*margin: auto;*/
+    /*border: 1px solid;*/
+    height: 100%;
+}
+
+.inner {
+    display: flex;
+    justify-content: center;
+}
+
+.inner * {
+    padding: 10px 40px 10px 40px;
+    margin: 0 40px 0 40px;
+    /*border: 1px solid;*/
+}
+
+h1 {
+    font-family: Lucida Sans Unicode, sans-serif;
+}
+
+a {
+    font-family: Arial, sans-serif;
+    text-decoration: none;
+    color: black;
+    border: 1px solid;
+    border-radius: 10px;
+    transition: ease-in-out 100ms;
+}
+
+a:hover {
+    background: #eeeeee;
+}

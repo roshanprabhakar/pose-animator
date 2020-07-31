@@ -1,55 +1,19 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <title>PoseNet - Camera Feed Demo</title>
-    <link rel="stylesheet" href="./camera.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <title>Stream Demo</title>
+    <link rel="stylesheet" href="index.css">
 </head>
-
 <body>
-<div id="info" style='display:none'>
-</div>
-<div id="loading" style='position: relative; left: 0'>
-        <span class="spinner-text" id="status">
-            Loading PoseNet model...
-        </span>
-    <div class="sk-spinner sk-spinner-pulse"></div>
-</div>
-<div id="video-container">
-    <video id="source-video" autoplay playsinline></video>
-    <div class="canvas-container">
-        <div id='main' style='display:none'>
-            <video id="video" playsinline style=" -moz-transform: scaleX(-1);
-            -o-transform: scaleX(-1);
-            -webkit-transform: scaleX(-1);
-            transform: scaleX(-1);
-            display: none;
-            ">
-            </video>
-            <canvas id="output" class="camera-canvas"></canvas>
-            <canvas id="keypoints" class="camera-canvas"></canvas>
-        </div>
-        <canvas class="illustration-canvas"></canvas>
+
+<div class="container">
+    <h1>STEM to SHTEM Video Stream Demonstrations</h1>
+    <div class="inner">
+        <a href="animator.html">Animation Stream</a>
+        <a href="./WebRTC-Framework/html/streaming-generic-video.html">Generic Video Stream</a>
     </div>
 </div>
-<!--<div class="footer">-->
-<!--    <div class="footer-text">-->
-<div id="stats-box">
-    <p id="bitstream-box" style="padding-top: 10px; width: 100%; min-height: 100px; text-align: center">Stats</p>
-    <p id="latency-box" style="width: 100%; min-height: 100px; text-align: center; padding: -10px">Stats</p>
-    <!--    <p style="text-align: center;">-->
-    <!--        Pose Animator runs TF.js <strong>FaceMesh</strong> and <strong>PoseNet</strong> models to animate SVG-->
-    <!--        illustrations with camera feed / static images.<br>-->
-    <!--        It currently supports <strong>single-pose</strong>, <strong>single-face</strong> detection, and has been-->
-    <!--        tested on Destkop Chrome & iOS Safari.-->
-    <!--        <br>-->
-    <!--        (PoseNet model config - MobileNetV1, output stride 16, quant bytes 2)-->
-    <!--    </p>-->
-</div>
-<!--    </div>-->
-<!--</div>-->
-<script src="camera.js"></script>
-</body>
 
+</body>
 </html>
