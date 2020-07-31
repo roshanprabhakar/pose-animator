@@ -15,6 +15,13 @@
  * =============================================================================
  */
 
+
+// EDIT THIS VALUE TO TOGGLE BANDWIDTH LIMIT
+// -------------------------------------------
+const bandwidthLimit = 12; //kbits/second
+// -------------------------------------------
+
+
 import * as posenet_module from '@tensorflow-models/posenet';
 import * as facemesh_module from '@tensorflow-models/facemesh';
 import * as paper from 'paper';
@@ -74,7 +81,6 @@ let channel;
 // Analysis monitors
 // const monitors = ['bytesReceived', 'packetsReceived', 'headerBytesReceived', 'packetsLost', 'totalDecodeTime', 'totalInterFrameDelay', 'codecId'];
 const monitors = ['bytesReceived'];
-const bandwidthLimit = 12; //kbits/second
 
 let startTime;
 
@@ -101,7 +107,7 @@ async function initiateRtcStreamingChannel() {
     let messageCounter = 0;
     dataChannel.onmessage = function(event) {
 
-        if (messageCounter % 2 === 0) {
+        if (messageCounter % 2 === 1) {
             let poses = JSON.parse(event.data);
 
             // clears the output canvas
@@ -427,6 +433,8 @@ async function displaySourceVideo() {
     video.srcObject = await navigator.mediaDevices.getUserMedia(constraints);
 }
 
+
 bindPage().then(initiateRtcStreamingChannel).then(startTimer).then(transmit);
 displaySourceVideo()
 
+document.querySelector("#bitratelimit-box").innerHTML = `<strong>bandwidth limit:</strong> ${bandwidthLimit} kb/s`;
