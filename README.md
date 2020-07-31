@@ -1,4 +1,34 @@
-# Pose Animator
+# Pose Animator for STEM to SHTEM
+
+A twist on the conventional video streaming pipeline for the purposes of reductions in net latency. 
+
+## Install, Build, Run
+
+Do a recursive download:
+```sh
+git clone --recursive https://github.com/roshanprabhakar/pose-animator
+```
+
+Install dependencies and prepare the build directory:
+
+```sh
+yarn
+```
+
+Launch a live dev server while watching for changes:
+
+```sh
+yarn watch
+```
+
+## Platform support
+
+Demos are supported on Desktop Chrome and iOS Safari.
+
+It should also run on Chrome on Android and potentially more Android mobile browsers though support has not been tested yet.
+
+
+## Pose Animator
 
 Pose Animator takes a 2D vector illustration and animates its containing curves in real-time based on the recognition result from PoseNet and FaceMesh. It borrows the idea of skeleton-based animation from computer graphics and applies it to vector characters.
 
@@ -7,7 +37,6 @@ This is running in the browser in realtime using [TensorFlow.js](https://www.ten
 *This is not an officially supported Google product.*
 
 <img src="/resources/gifs/avatar-new-1.gif?raw=true" alt="cameraDemo" style="width: 250px;"/>
-
 <img src="/resources/gifs/avatar-new-full-body.gif?raw=true" alt="cameraDemo" style="width: 250px;"/>
 
 In skeletal animation a character is represented in two parts:
@@ -32,25 +61,20 @@ The camera demo animates a 2D avatar in real-time from a webcam video stream.
 
 The static image demo shows the avatar positioned from a single image.
 
-## Build And Run
+# STEM to SHTEM 2020 Adaptation
 
-Install    dependencies and prepare the build directory:
+Our goal was to provide a theory for video stream design that competes with the conventional standard. <br>
+We decided to play around with the following standard: <br>
+Packet encoding -> transmission of encoded data -> Packet Decoding
 
-```sh
-yarn
-```
+with the hope that reducing the amount of transmitted data (and consequentially increasing the encoding/decoding intensivity) will contribute to a net decrease in
+capture to render latency.
 
-To watch files for changes, and launch a dev server:
+The conventional codec produces encoded packets that are representations of the entirety of the initial frame, with no biases implicit to any one feature within the frame. This allows for the near complete reconstruciton at the rendering end with the expense of encoded data that fully represents the video feed. With Pose Animator, we are able to stream data solely related to the structure of a person contained within the frame. Doing so allows us to drastically reduce the size of transmitted data, even if it does increase the encoding/pose-extracting and decoding/pose-projection computation induced time. 
 
-```sh
-yarn watch
-```
+We have integrated the streaming of poses data into our web-rtc streaming framework, which allows for the throttling of network bandwidth. From testing, we see that our method of video streaming allows for smooth, real time connectivity at drastically lower bandwidths (~12 kb/s) than those needed by the conventional stream (~300 kb/s). 
 
-## Platform support
-
-Demos are supported on Desktop Chrome and iOS Safari.
-
-It should also run on Chrome on Android and potentially more Android mobile browsers though support has not been tested yet.
+Although pose-animator does not provide a suitable animator for replacing today's streaming standard, this project demonstrates the potential of syncing an animator with a transmission service to provide a better video conferencing experience than that which exists today. 
 
 # Animate your own design
 
