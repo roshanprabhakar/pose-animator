@@ -66,7 +66,9 @@ The static image demo shows the avatar positioned from a single image.
 Our goal was to provide a modification of the conventional video stream pipeline which competes with the original standard. <br>
 
 We decided to modify the following pipeline: <br>
-Packet encoding -> transmission of encoded data -> Packet Decoding
+```
+Packet encoding &#8594; transmission of encoded data &#8594; Packet Decoding
+```
 
 The premise of our project revolves around the theory that reducing the amount of transmitted data (and consequentially increasing the encoding/decoding computation time) will contribute to a net decrease in capture to render latency.
 
