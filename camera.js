@@ -397,8 +397,8 @@ function getConnectionStats() {
         let statsOutput = '';
 
         stats.forEach(report => {
-            // if (!report.id.startsWith("RTCDataChannel_"))
-            //     return;
+            if (!report.id.startsWith("RTCDataChannel_"))
+                 return;
             Object.keys(report).forEach(statName => {
                 if (monitors.includes(statName)) {
 
