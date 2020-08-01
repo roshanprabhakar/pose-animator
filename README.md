@@ -63,16 +63,16 @@ The static image demo shows the avatar positioned from a single image.
 
 # STEM to SHTEM 2020 Adaptation
 
-Our goal was to provide a theory for video stream design that competes with the conventional standard. <br>
-We decided to play around with the following standard: <br>
+Our goal was to provide a modification of the conventional video stream pipeline which competes with the original standard. <br>
+
+We decided to modify the following pipeline: <br>
 Packet encoding -> transmission of encoded data -> Packet Decoding
 
-with the hope that reducing the amount of transmitted data (and consequentially increasing the encoding/decoding intensivity) will contribute to a net decrease in
-capture to render latency.
+The premise of our project revolves around the theory that reducing the amount of transmitted data (and consequentially increasing the encoding/decoding computation time) will contribute to a net decrease in capture to render latency.
 
-The conventional codec produces encoded packets that are representations of the entirety of the initial frame, with no biases implicit to any one feature within the frame. This allows for the near complete reconstruciton at the rendering end with the expense of encoded data that fully represents the video feed. With Pose Animator, we are able to stream data solely related to the structure of a person contained within the frame. Doing so allows us to drastically reduce the size of transmitted data, even if it does increase the encoding/pose-extracting and decoding/pose-projection computation induced time. 
+The conventional codec produces encoded packets that are representations of the entirety of the initial frame, with no biases implicit to any one feature within the frame. This allows for the near complete reconstruciton at the rendering end with the expense of creating encoded data that fully represents the video feed and thus is greater than it has to be for any specific stream use-case. With Pose Animator, we are able to stream data solely related to the structure of a person contained within the frame. Doing so allows us to drastically reduce the size of transmitted data, even if it does increase the encoding/pose-extracting and decoding/pose-projection computation induced time. 
 
-We have integrated the streaming of poses data into our web-rtc streaming framework, which allows for the throttling of network bandwidth. From testing, we see that our method of video streaming allows for smooth, real time connectivity at drastically lower bandwidths (~12 kb/s) than those needed by the conventional stream (~300 kb/s). 
+We integrated the streaming of poses data into a web-rtc streaming framework, then throttled the stream bandwidth. Conclusively, we see that our method of video streaming allows for smooth, real time connectivity at drastically lower bandwidths (~12 kb/s) than those needed by the conventional stream (~300 kb/s). 
 
 Although pose-animator does not provide a suitable animator for replacing today's streaming standard, this project demonstrates the potential of syncing an animator with a transmission service to provide a better video conferencing experience than that which exists today. 
 
