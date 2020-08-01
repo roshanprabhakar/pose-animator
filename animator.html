@@ -16,8 +16,10 @@
         </span>
     <div class="sk-spinner sk-spinner-pulse"></div>
 </div>
+
+
 <div id="video-container">
-    <video id="source-video" autoplay playsinline></video>
+    <!--<video id="source-video" autoplay playsinline></video>-->
     <div class="canvas-container">
         <div id='main' style='display:none'>
             <video id="video" playsinline style=" -moz-transform: scaleX(-1);
@@ -35,10 +37,18 @@
 </div>
 <!--<div class="footer">-->
 <!--    <div class="footer-text">-->
+
+
 <div id="stats-box">
-    <p id="bitstream-box" style="padding-top: 10px; width: 100%; min-height: 100px; text-align: center">Stats</p>
-    <p id="bitratelimit-box" style="width: 100%; min-height: 100px; text-align: center; padding: -10px">Stats</p>
-    <p id="latency-box" style="width: 100%; min-height: 100px; text-align: center; padding: -10px">Stats</p>
+    <p>
+    <label for="bandwidth_input"><strong>Set max bitrate (kb/s):</strong> (can set to unlimited)</label>
+    <input id="bandwidth_input" type="text" /> <input id="bandwidth_button" type="submit" />
+    </p>
+    <p id="bitstream-box"></p>
+    <p id="bitratelimit-box"></p>
+    <!--
+        <p id="latency-box" style="width: 100%; min-height: 100px; text-align: center; padding: -10px">Stats</p>
+    -->
 </div>
 <!--    </div>-->
 <!--</div>-->

@@ -16,10 +16,15 @@
  */
 
 
-// EDIT THIS VALUE TO TOGGLE BANDWIDTH LIMIT
-// -------------------------------------------
-const bandwidthLimit = 12; //kbits/second
-// -------------------------------------------
+ // bandwidth limit starts off as unlimited, but can be changed by entering a value in
+ // the input box. This updates the session storage value and reloads the page.
+ // -------------------------------------------
+ var bandwidthLimit = sessionStorage.getItem("bandwidthLimit"); //kbits/second
+ if (bandwidthLimit === null) {
+     bandwidthLimit = 'unlimited';
+     // EDIT THIS VALUE TO TOGGLE INITIAL BANDWIDTH LIMIT
+ }
+ // -------------------------------------------
 
 
 import * as posenet_module from '@tensorflow-models/posenet';
@@ -29,7 +34,7 @@ import dat from 'dat.gui';
 import Stats from 'stats.js';
 import 'babel-polyfill';
 
-import {isMobile, setStatusText, toggleLoadingUI} from './utils/demoUtils';
+import {drawKeypoints, drawSkeleton, isMobile, setStatusText, toggleLoadingUI} from './utils/demoUtils';
 import {SVGUtils} from './utils/svgUtils';
 import {PoseIllustration} from './illustrationGen/illustration';
 import {Skeleton} from './illustrationGen/skeleton';
@@ -43,15 +48,15 @@ import * as tomNookSVG from './resources/illustration/tom-nook.svg';
 
 // Camera stream video element
 let video;
-let videoWidth = 300;
-let videoHeight = 300;
+let videoWidth = 500;
+let videoHeight = 500;
 
 // Canvas
 let faceDetection = null;
 let illustration = null;
 let canvasScope;
-let canvasWidth = 800;
-let canvasHeight = 800;
+let canvasWidth = 500;
+let canvasHeight = 500;
 
 // ML models
 let facemesh;
@@ -71,6 +76,9 @@ const avatarSvgs = {
     'tom-nook': tomNookSVG.default,
 };
 
+const bandwidthButton = document.querySelector('input#bandwidth_button');
+const bandwidthInput = document.querySelector('input#bandwidth_input');
+
 // WebRTC connection nodes
 let pc1;
 let pc2;
@@ -82,7 +90,8 @@ let channel;
 // const monitors = ['bytesReceived', 'packetsReceived', 'headerBytesReceived', 'packetsLost', 'totalDecodeTime', 'totalInterFrameDelay', 'codecId'];
 const monitors = ['bytesReceived'];
 
-let startTime;
+let previousTime;
+let previousBytesIntegral = 0;
 
 function getOtherPeerConnection(pc) {
     if (pc === pc1) {
@@ -104,26 +113,28 @@ async function initiateRtcStreamingChannel() {
 
     const dataChannel = pc1.createDataChannel('pose-animator data channel');
 
-    let messageCounter = 0;
+//    let messageCounter = 0;
     dataChannel.onmessage = function(event) {
 
-        if (messageCounter % 2 === 1) {
-            let poses = JSON.parse(event.data);
+//        if (messageCounter % 2 === 1) {
+    let poses = JSON.parse(event.data);
 
-            // clears the output canvas
-            keypointCtx.clearRect(0, 0, videoWidth, videoHeight);
-            canvasScope.project.clear();
+    // clears the output canvas
+    canvasScope.project.clear();
 
-            // projects the poses skeleton on the existing svg skeleton
-            Skeleton.flipPose(poses[0]);
-            illustration.updateSkeleton(poses[0], null);
-            illustration.draw(canvasScope, videoWidth, videoHeight);
+    // projects the poses skeleton on the existing svg skeleton
+    Skeleton.flipPose(poses[0]);
+    illustration.updateSkeleton(poses[0], null);
+    illustration.draw(canvasScope, videoWidth, videoHeight);
+    if (guiState.debug.showIllustrationDebug) {
+      illustration.debugDraw(canvasScope);
+    }
 
-            canvasScope.project.activeLayer.scale(
-                canvasWidth / videoWidth,
-                canvasHeight / videoHeight,
-                new canvasScope.Point(0, 0));
-        } else {
+    canvasScope.project.activeLayer.scale(
+        canvasWidth / videoWidth,
+        canvasHeight / videoHeight,
+        new canvasScope.Point(0, 0));
+/*        } else {
 
             let timeAtTransmit = parseInt(event.data);
             let currentTime = new Date().getTime();
@@ -132,6 +143,7 @@ async function initiateRtcStreamingChannel() {
         }
 
         messageCounter++;
+*/
     };
 
     // setting up pc2 (transmitting end)
@@ -174,6 +186,8 @@ async function initiateRtcStreamingChannel() {
 }
 
 async function transmit() {
+    // Begin monitoring code for frames per second
+    stats.begin();
 
     // initializes poses
     let poses = [];
@@ -190,9 +204,35 @@ async function transmit() {
     // merges all poses
     poses = poses.concat(all_poses);
 
+    const keypointCanvas = document.getElementById('keypoints');
+    const canvas = document.getElementById('output');
+    const keypointCtx = keypointCanvas.getContext('2d');
+    const videoCtx = canvas.getContext('2d');
+
+    videoCtx.clearRect(0, 0, videoWidth, videoHeight);
+    // Draw video
+    videoCtx.save();
+    videoCtx.scale(-1, 1);
+    videoCtx.translate(-videoWidth, 0);
+    videoCtx.drawImage(video, 0, 0, videoWidth, videoHeight);
+    videoCtx.restore();
+
+    keypointCtx.clearRect(0, 0, videoWidth, videoHeight);
+    if (guiState.debug.showDetectionDebug) {
+      poses.forEach(({score, keypoints}) => {
+      if (score >= minPoseConfidence) {
+          drawKeypoints(keypoints, minPartConfidence, keypointCtx);
+          drawSkeleton(keypoints, minPartConfidence, keypointCtx);
+        }
+      });
+    }
+
     // transmit poses object
     channel.send(JSON.stringify(poses));
-    channel.send(new Date().getTime());
+//    channel.send(new Date().getTime());
+
+    // End monitoring code for frames per second
+    stats.end();
 
     // loop back
     setTimeout(transmit, 10);
@@ -353,24 +393,30 @@ async function parseSVG(target) {
 function getConnectionStats() {
 
     let taken = [];
-    pc2.getStats(null).then(stats => {
+    pc1.getStats(null).then(stats => {
         let statsOutput = '';
 
         stats.forEach(report => {
-
+            // if (!report.id.startsWith("RTCDataChannel_"))
+            //     return;
             Object.keys(report).forEach(statName => {
                 if (monitors.includes(statName)) {
 
                     let bytesIntegral = parseInt(report[statName]);
-                    let timeIntegral = (new Date().getTime() - startTime) / 1000;
-                    let kbytesPerSecond = bytesIntegral / timeIntegral / 1000;
 
-                    if (kbytesPerSecond !== 0 && !taken.includes(statName)) {
+
+                    if (bytesIntegral !== 0 && !taken.includes(statName)) {
+                        let currentTime = new Date().getTime();
+                        let timeIntegral = (currentTime - previousTime) / 1000;
+
+                        let kbytesPerSecond = (bytesIntegral - previousBytesIntegral)/ timeIntegral / 1000;
+                        previousBytesIntegral = bytesIntegral;
+                        previousTime = currentTime;
                         if (statName === "bytesReceived") {
-                            statsOutput += `<strong>kilobit rate: </strong> ${kbytesPerSecond * 8} kb/s <br>\n`;
+                            statsOutput += `<strong>kilobit rate: </strong> ${(kbytesPerSecond * 8).toFixed(2)} kb/s <br>`;
                             taken.push(statName);
                         } else {
-                            statsOutput += `<strong>${statName}:</strong> ${kbytesPerSecond * 8} kb/s <br>\n`;
+                            statsOutput += `<strong>${statName}:</strong> ${kbytesPerSecond * 8} kb/s <br>`;
                             taken.push(statName);
                         }
                     }
@@ -383,10 +429,15 @@ function getConnectionStats() {
 }
 
 function startTimer() {
-    startTime = new Date().getTime();
+    previousTime = new Date().getTime();
 }
 
 function setMediaBitrate(sdp, media, bitrate) {
+    if (bandwidthLimit == "unlimited") {
+        return sdp;
+    }
+    bandwidthLimit = parseInt(bandwidthLimit);
+
     var lines = sdp.split("\n");
     var line = -1;
     for (var i = 0; i < lines.length; i++) {
@@ -421,20 +472,29 @@ function setMediaBitrate(sdp, media, bitrate) {
     var newLines = lines.slice(0, line);
     newLines.push("b=AS:"+bitrate);
     newLines = newLines.concat(lines.slice(line, lines.length));
+
     return newLines.join("\n");
 }
 
-async function displaySourceVideo() {
-    video = document.getElementById("source-video");
-    const constraints = {
-        video: true,
-        audio: false
-    }
-    video.srcObject = await navigator.mediaDevices.getUserMedia(constraints);
-}
+// when button clicked set new bandwidthLimit to session storage and reload
+bandwidthButton.onclick = () => {
+  bandwidthLimit = document.getElementById("bandwidth_input").value;
+  sessionStorage.setItem("bandwidthLimit", bandwidthLimit);
+  location.reload();
+};
+
+// Execute a function when the user releases a key on the keyboard
+bandwidthInput.addEventListener("keyup", function(event) {
+  // Number 13 is the "Enter" key on the keyboard
+  if (event.keyCode === 13) {
+    // Cancel the default action, if needed
+    event.preventDefault();
+    // Trigger the button element with a click
+    document.getElementById("bandwidth_button").click();
+  }
+});
 
 
 bindPage().then(initiateRtcStreamingChannel).then(startTimer).then(transmit);
-displaySourceVideo()
 
-document.querySelector("#bitratelimit-box").innerHTML = `<strong>bandwidth limit:</strong> ${bandwidthLimit} kb/s`;
+document.querySelector("#bitratelimit-box").innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit} kb/s`;
