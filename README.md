@@ -21,6 +21,15 @@ Launch a live dev server while watching for changes:
 yarn watch
 ```
 
+The following might be useful if you face issues with the steps above:
+- https://github.com/nodejs/node-gyp/issues/1927#issuecomment-661825834
+- https://github.com/yemount/pose-animator/issues/12#issuecomment-626741765
+
+The second link above does something bad - it no longer allows you to see the original script in chrome which is quite useful for debugging.
+
+So a better solution is to NOT add --no-source-maps to package.json and instead replace the file node_modules/paper/dist/paper-full.js with a working copy available at https://pose-animator-demo.firebaseapp.com/node_modules/paper/dist/paper-full.js.
+
+
 ## Platform support
 
 Demos are supported on Desktop Chrome and iOS Safari.
