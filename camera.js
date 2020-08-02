@@ -16,16 +16,16 @@
  */
 
 
-    // bandwidth limit starts off as unlimited, but can be changed by entering a value in
-    // the input box. This updates the session storage value and reloads the page.
-    // -------------------------------------------
-var bandwidthLimit = sessionStorage.getItem('bandwidthLimit'); //kbits/second
-if (bandwidthLimit === null) {
-    bandwidthLimit = 'unlimited';
-    // EDIT THIS VALUE TO TOGGLE INITIAL BANDWIDTH LIMIT
-}
-// -------------------------------------------
-
+//     // bandwidth limit starts off as unlimited, but can be changed by entering a value in
+//     // the input box. This updates the session storage value and reloads the page.
+//     // -------------------------------------------
+// var bandwidthLimit = sessionStorage.getItem('bandwidthLimit'); //kbits/second
+// if (bandwidthLimit === null) {
+//     bandwidthLimit = 'unlimited';
+//     // EDIT THIS VALUE TO TOGGLE INITIAL BANDWIDTH LIMIT
+// }
+// // -------------------------------------------
+//
 
 import * as posenet_module from '@tensorflow-models/posenet';
 import * as facemesh_module from '@tensorflow-models/facemesh';
@@ -82,8 +82,8 @@ const avatarSvgs = {
     'tom-nook': tomNookSVG.default,
 };
 
-const bandwidthButton = document.querySelector('input#bandwidth_button');
-const bandwidthInput = document.querySelector('input#bandwidth_input');
+// const bandwidthButton = document.querySelector('input#bandwidth_button');
+// const bandwidthInput = document.querySelector('input#bandwidth_input');
 
 // WebRTC connection nodes
 let pc1;
@@ -129,7 +129,7 @@ async function initiateRtcStreamingChannel() {
 
         if (message.length === 2) {
 
-            let pose = reconstructPose(new Float32Array(message[0]), new Int16Array(message[1]));
+            let pose = reconstructPose(new Int16Array(message[0]), new Int16Array(message[1]));
 
             // clears the output canvas
             canvasScope.project.clear();
@@ -159,7 +159,7 @@ async function initiateRtcStreamingChannel() {
         channel = event.channel;
     };
 
-    let statsInterval = window.setInterval(getConnectionStats, 100);
+    let statsInterval = window.setInterval(getConnectionStats, 1000);
 
     // connects pc1 and pc2
     let offer = await pc1.createOffer({
@@ -167,13 +167,13 @@ async function initiateRtcStreamingChannel() {
         offerToReceiveVideo: 0,
     });
 
-    offer.sdp = setMediaBitrate(offer.sdp, '', bandwidthLimit);
+    // offer.sdp = setMediaBitrate(offer.sdp, '', bandwidthLimit);
 
     await pc2.setRemoteDescription(offer);
     await pc1.setLocalDescription(offer);
 
     let answer = await pc2.createAnswer();
-    answer.sdp = setMediaBitrate(answer.sdp, '', bandwidthLimit);
+    // answer.sdp = setMediaBitrate(answer.sdp, '', bandwidthLimit);
 
     await pc1.setRemoteDescription(answer);
     await pc2.setLocalDescription(answer);
@@ -261,12 +261,12 @@ function deconstructPose(pose) {
     // let confidences = [];
     // let positions = [];
 
-    let confidences = new Float32Array(18);
+    let confidences = new Int16Array(18);
     let positions = new Int16Array(34);
 
-    confidences[0] = pose.score;
+    confidences[0] = 10000*pose.score; // to reduce transmission size
     for (let i = 0; i < pose.keypoints.length; i++) {
-        confidences[i + 1] = pose.keypoints[i].score;
+        confidences[i + 1] = 10000*pose.keypoints[i].score;
         positions[i * 2] = pose.keypoints[i].position.x;
         positions[i * 2 + 1] = pose.keypoints[i].position.y;
     }
@@ -289,12 +289,12 @@ function reconstructPose(confidences, positions) {
     // positions = Uint16Array [34], each pair belongs to one of the 14 keypoints
 
     let pose = {
-        'score': confidences[0],
+        'score': confidences[0]/10000,
         'keypoints': [],
     };
     for (let i = 0; i < 17; i += 1) {
         pose.keypoints.push({
-            'score': confidences[i + 1],
+            'score': confidences[i + 1]/10000,
             'part': parts[i],
             'position': {
                 'x': positions[i * 2],
@@ -498,88 +498,89 @@ function startTimer() {
     previousTime = new Date().getTime();
 }
 
-function setMediaBitrate(sdp, media, bitrate) {
+// function setMediaBitrate(sdp, media, bitrate) {
+//
+//     if (bitrate === 'unlimited') {
+//         return sdp;
+//     }
+//
+//     bitrate *= 1000; // b/s instead of kb/s
+//
+//     bitrate = parseInt(bitrate);
+//
+//     var lines = sdp.split('\n');
+//     var line = -1;
+//     for (var i = 0; i < lines.length; i++) {
+//         // console.log(lines[i]);
+//         if (lines[i].indexOf('m=' + media) === 0) {
+//             line = i;
+//             break;
+//         }
+//     }
+//
+//     if (line === -1) {
+//         console.debug('Could not find the m line for', media);
+//         return sdp;
+//     }
+//     console.debug('Found the m line for', media, 'at line', line);
+//
+//     // Pass the m line
+//     line++;
+//
+//     // Skip i and c lines
+//     while (lines[line].indexOf('i=') === 0 || lines[line].indexOf('c=') === 0) {
+//         line++;
+//     }
+//
+//     // If we're on a b line, replace it
+//     if (lines[line].indexOf('b') === 0) {
+//         console.debug('Replaced b line at line', line);
+//         lines[line] = 'b=RS:' + bitrate;
+//         lines.splice(line, 0, `b=SS:${bitrate}`);
+//         console.log(lines.join('\n'));
+//         return lines.join('\n');
+//     }
+//
+//     // Add a new b line
+//     console.debug('Adding new b line before line', line);
+//     var newLines = lines.slice(0, line);
+//     newLines.push('b=RR:' + bitrate);
+//     newLines.push('b=RS:' + bitrate);
+//     newLines = newLines.concat(lines.slice(line, lines.length));
+//
+//     let returnLines = newLines.join('\n');
+//
+//     console.log(returnLines);
+//
+//     return returnLines;
+// }
 
-    bitrate *= 1000;
-
-    console.log("bandwidth limit: " + bandwidthLimit);
-
-    if (bandwidthLimit === 'unlimited') {
-        return sdp;
-    }
-
-    bandwidthLimit = parseInt(bandwidthLimit);
-
-    var lines = sdp.split('\n');
-    var line = -1;
-    for (var i = 0; i < lines.length; i++) {
-        // console.log(lines[i]);
-        if (lines[i].indexOf('m=' + media) === 0) {
-            line = i;
-            break;
-        }
-    }
-
-    if (line === -1) {
-        console.debug('Could not find the m line for', media);
-        return sdp;
-    }
-    console.debug('Found the m line for', media, 'at line', line);
-
-    // Pass the m line
-    line++;
-
-    // Skip i and c lines
-    while (lines[line].indexOf('i=') === 0 || lines[line].indexOf('c=') === 0) {
-        line++;
-    }
-
-    // If we're on a b line, replace it
-    if (lines[line].indexOf('b') === 0) {
-        console.debug('Replaced b line at line', line);
-        lines[line] = 'b=RS:' + bitrate;
-        lines.splice(line, 0, `b=SS:${bitrate}`);
-        console.log(lines.join('\n'));
-        return lines.join('\n');
-    }
-
-    // Add a new b line
-    console.debug('Adding new b line before line', line);
-    var newLines = lines.slice(0, line);
-    newLines.push('b=RR:' + bitrate);
-    newLines.push('b=RS:' + bitrate);
-    newLines = newLines.concat(lines.slice(line, lines.length));
-
-    let returnLines = newLines.join('\n');
-
-    console.log(returnLines);
-
-    return returnLines;
-}
-
-// when button clicked set new bandwidthLimit to session storage and reload
-bandwidthButton.onclick = async function () {
-
-    bandwidthLimit = document.getElementById('bandwidth_input').value;
-    sessionStorage.setItem('bandwidthLimit', bandwidthLimit * 1000);
-    location.reload();
-    //
-    // initiateRtcStreamingChannel().then(startTimer).then(transmit);
-    // document.querySelector('#bitratelimit-box').innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit} kb/s`;
-};
-
-// Execute a function when the user releases a key on the keyboard
-bandwidthInput.addEventListener('keyup', function(event) {
-    // Number 13 is the "Enter" key on the keyboard
-    if (event.keyCode === 13) {
-        // Cancel the default action, if needed
-        event.preventDefault();
-        // Trigger the button element with a click
-        document.getElementById('bandwidth_button').click();
-    }
-});
+// // when button clicked set new bandwidthLimit to session storage and reload
+// bandwidthButton.onclick = async function () {
+//
+//     bandwidthLimit = document.getElementById('bandwidth_input').value;
+//     sessionStorage.setItem('bandwidthLimit', bandwidthLimit * 1000);
+//     location.reload();
+//     //
+//     // initiateRtcStreamingChannel().then(startTimer).then(transmit);
+//     // document.querySelector('#bitratelimit-box').innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit} kb/s`;
+// };
+//
+// // Execute a function when the user releases a key on the keyboard
+// bandwidthInput.addEventListener('keyup', function(event) {
+//     // Number 13 is the "Enter" key on the keyboard
+//     if (event.keyCode === 13) {
+//         // Cancel the default action, if needed
+//         event.preventDefault();
+//         // Trigger the button element with a click
+//         document.getElementById('bandwidth_button').click();
+//     }
+// });
 
 
 bindPage().then(initiateRtcStreamingChannel).then(startTimer).then(transmit);
 
-document.querySelector('#bitratelimit-box').innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit / 1000} kb/s`;
+// if (bandwidthLimit == 'unlimited')
+//     document.querySelector('#bitratelimit-box').innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit} kb/s`;
+// else
+//     document.querySelector('#bitratelimit-box').innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit / 1000} kb/s`;
