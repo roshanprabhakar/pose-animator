@@ -16,17 +16,6 @@
  */
 
 
-//     // bandwidth limit starts off as unlimited, but can be changed by entering a value in
-//     // the input box. This updates the session storage value and reloads the page.
-//     // -------------------------------------------
-// var bandwidthLimit = sessionStorage.getItem('bandwidthLimit'); //kbits/second
-// if (bandwidthLimit === null) {
-//     bandwidthLimit = 'unlimited';
-//     // EDIT THIS VALUE TO TOGGLE INITIAL BANDWIDTH LIMIT
-// }
-// // -------------------------------------------
-//
-
 import * as posenet_module from '@tensorflow-models/posenet';
 import * as facemesh_module from '@tensorflow-models/facemesh';
 import * as paper from 'paper';
@@ -82,8 +71,11 @@ const avatarSvgs = {
     'tom-nook': tomNookSVG.default,
 };
 
-// const bandwidthButton = document.querySelector('input#bandwidth_button');
-// const bandwidthInput = document.querySelector('input#bandwidth_input');
+// references for render setup
+const keypointCanvas = document.getElementById('keypoints');
+const canvas = document.getElementById('output');
+const keypointCtx = keypointCanvas.getContext('2d');
+const videoCtx = canvas.getContext('2d');
 
 // WebRTC connection nodes
 let pc1;
@@ -99,6 +91,7 @@ const monitors = ['bytesReceived'];
 // order list for poses deconstruction and reconstruction
 const parts = ['nose', 'leftEye', 'rightEye', 'leftEar', 'rightEar', 'leftShoulder', 'rightShoulder', 'leftElbow', 'rightElbow', 'leftWrist', 'rightWrist', 'leftHip', 'rightHip', 'leftKnee', 'rightKnee', 'leftAnkle', 'rightAnkle'];
 
+// summations for finding necessary statistics
 let previousTime;
 let previousBytesIntegral = 0;
 
@@ -110,18 +103,29 @@ function getOtherPeerConnection(pc) {
     }
 }
 
+/**
+ * Adds the passed candidate to the opposite node of the connection provided
+ *
+ */
 function onIceCandidate(pc, event) {
     (getOtherPeerConnection(pc)).addIceCandidate(event.candidate);
 }
 
+/**
+ * Connects the two peer connections, adds handlers for messages received
+ * and data channel detected.
+ *
+ */
 async function initiateRtcStreamingChannel() {
 
     // setting up pc1 (receiving end)
     pc1 = new RTCPeerConnection({});
     pc1.addEventListener('icecandidate', e => onIceCandidate(pc1, e));
 
+    // creates the data channel at the receiving end, transmission starts when the transmitting end detects this channel
     const dataChannel = pc1.createDataChannel('pose-animator data channel');
 
+    // for messages received, parse the transmitted arrays as poses and project them
     let message = [];
     dataChannel.onmessage = function(event) {
 
@@ -155,6 +159,7 @@ async function initiateRtcStreamingChannel() {
     pc2 = new RTCPeerConnection({});
     pc2.addEventListener('icecandidate', e => onIceCandidate(pc2, e));
 
+    // sets the pc2 data channel to the global context
     pc2.ondatachannel = function(event) {
         channel = event.channel;
     };
@@ -167,31 +172,21 @@ async function initiateRtcStreamingChannel() {
         offerToReceiveVideo: 0,
     });
 
-    // offer.sdp = setMediaBitrate(offer.sdp, '', bandwidthLimit);
-
     await pc2.setRemoteDescription(offer);
     await pc1.setLocalDescription(offer);
 
     let answer = await pc2.createAnswer();
-    // answer.sdp = setMediaBitrate(answer.sdp, '', bandwidthLimit);
 
     await pc1.setRemoteDescription(answer);
     await pc2.setLocalDescription(answer);
-
-    // get elements for pose animator to access
-    const canvas = document.getElementById('output');
-    const keypointCanvas = document.getElementById('keypoints');
-    const videoCtx = canvas.getContext('2d');
-    const keypointCtx = keypointCanvas.getContext('2d');
-
-    // setup html dimensions
-    canvas.width = videoWidth;
-    canvas.height = videoHeight;
-    keypointCanvas.width = videoWidth;
-    keypointCanvas.height = videoHeight;
 }
 
+/**
+ * Loops the transmission of deconstructed poses
+ *
+ */
 async function transmit() {
+
     // Begin monitoring code for frames per second
     stats.begin();
 
@@ -210,19 +205,17 @@ async function transmit() {
     // merges all poses
     poses = poses.concat(all_poses);
 
-    const keypointCanvas = document.getElementById('keypoints');
-    const canvas = document.getElementById('output');
-    const keypointCtx = keypointCanvas.getContext('2d');
-    const videoCtx = canvas.getContext('2d');
-
+    // clears previous render
     videoCtx.clearRect(0, 0, videoWidth, videoHeight);
-    // Draw video
+
+    // draw video
     videoCtx.save();
     videoCtx.scale(-1, 1);
     videoCtx.translate(-videoWidth, 0);
     videoCtx.drawImage(video, 0, 0, videoWidth, videoHeight);
     videoCtx.restore();
 
+    // projects pose onto svg
     keypointCtx.clearRect(0, 0, videoWidth, videoHeight);
     if (guiState.debug.showDetectionDebug) {
         poses.forEach(({score, keypoints}) => {
@@ -233,18 +226,14 @@ async function transmit() {
         });
     }
 
-
+    // converts pose to streamable buffers
     let deconstructedPose = deconstructPose(poses[0]);
 
+    // deconstructedPose === null if difference between consecutive frames is 0
     if (deconstructedPose !== null) {
         channel.send(deconstructedPose[0].buffer);
         channel.send(deconstructedPose[1].buffer);
     }
-
-    // // transmit poses representation
-    // channel.send(JSON.stringify(poses));
-
-//    channel.send(new Date().getTime());
 
     // End monitoring code for frames per second
     stats.end();
@@ -253,48 +242,41 @@ async function transmit() {
     setTimeout(transmit, 10);
 }
 
-// pass in pose[0]
+/**
+ * Converts a pose object to streamable array views, the corresponding
+ * buffers are streamed
+ *
+ */
 function deconstructPose(pose) {
-
     if (pose == null) return null;
-
-    // let confidences = [];
-    // let positions = [];
 
     let confidences = new Int16Array(18);
     let positions = new Int16Array(34);
 
-    confidences[0] = 10000*pose.score; // to reduce transmission size
+    confidences[0] = 10000 * pose.score; // to reduce transmission size
     for (let i = 0; i < pose.keypoints.length; i++) {
-        confidences[i + 1] = 10000*pose.keypoints[i].score;
+        confidences[i + 1] = 10000 * pose.keypoints[i].score;
         positions[i * 2] = pose.keypoints[i].position.x;
         positions[i * 2 + 1] = pose.keypoints[i].position.y;
     }
 
-    // let transmittableConfidences = new Uint8Array(confidences);
-    // let transmittablePositions = new Uint16Array(positions);
-
-    // let transmittableConfidences = new Float32Array(confidences);
-    // let transmittablePositions = new Float32Array(positions);
-
-    // return [transmittableConfidences, transmittablePositions];
-
     return [confidences, positions];
 }
 
-// reconstructs poses[0]
+/**
+ * Converts streamed arrays (after view initialized) into a pose object for
+ * animation rendering.
+ *
+ */
 function reconstructPose(confidences, positions) {
 
-    // confidences = Uint8Array [18], 1st belongs to general, following 17 belong to each keypoint
-    // positions = Uint16Array [34], each pair belongs to one of the 14 keypoints
-
     let pose = {
-        'score': confidences[0]/10000,
+        'score': confidences[0] / 10000,
         'keypoints': [],
     };
     for (let i = 0; i < 17; i += 1) {
         pose.keypoints.push({
-            'score': confidences[i + 1]/10000,
+            'score': confidences[i + 1] / 10000,
             'part': parts[i],
             'position': {
                 'x': positions[i * 2],
@@ -360,6 +342,7 @@ const guiState = {
 
 /**
  * Sets up dat.gui controller on the top-right of the window
+ *
  */
 function setupGui(cameras) {
 
@@ -381,12 +364,14 @@ function setupGui(cameras) {
 
 /**
  * Sets up a frames per second panel on the top-left of the window
+ *
  */
 function setupFPS() {
     stats.showPanel(0);
     document.getElementById('main').appendChild(stats.dom);
 }
 
+// more render configuration
 function setupCanvas() {
     mobile = isMobile();
     if (mobile) {
@@ -443,6 +428,7 @@ export async function bindPage() {
     toggleLoadingUI(false);
 }
 
+// initiates svg skeleton to be used
 navigator.getUserMedia = navigator.getUserMedia ||
     navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 FileUtils.setDragDropHandler((result) => {
@@ -456,7 +442,10 @@ async function parseSVG(target) {
     illustration.bindSkeleton(skeleton, svgScope);
 }
 
-// monitors inbound bytestream according to provided monitors
+/**
+ * Monitors inbound byte stream for the calculation of network transmission rate
+ *
+ */
 function getConnectionStats() {
 
     let taken = [];
@@ -498,89 +487,15 @@ function startTimer() {
     previousTime = new Date().getTime();
 }
 
-// function setMediaBitrate(sdp, media, bitrate) {
-//
-//     if (bitrate === 'unlimited') {
-//         return sdp;
-//     }
-//
-//     bitrate *= 1000; // b/s instead of kb/s
-//
-//     bitrate = parseInt(bitrate);
-//
-//     var lines = sdp.split('\n');
-//     var line = -1;
-//     for (var i = 0; i < lines.length; i++) {
-//         // console.log(lines[i]);
-//         if (lines[i].indexOf('m=' + media) === 0) {
-//             line = i;
-//             break;
-//         }
-//     }
-//
-//     if (line === -1) {
-//         console.debug('Could not find the m line for', media);
-//         return sdp;
-//     }
-//     console.debug('Found the m line for', media, 'at line', line);
-//
-//     // Pass the m line
-//     line++;
-//
-//     // Skip i and c lines
-//     while (lines[line].indexOf('i=') === 0 || lines[line].indexOf('c=') === 0) {
-//         line++;
-//     }
-//
-//     // If we're on a b line, replace it
-//     if (lines[line].indexOf('b') === 0) {
-//         console.debug('Replaced b line at line', line);
-//         lines[line] = 'b=RS:' + bitrate;
-//         lines.splice(line, 0, `b=SS:${bitrate}`);
-//         console.log(lines.join('\n'));
-//         return lines.join('\n');
-//     }
-//
-//     // Add a new b line
-//     console.debug('Adding new b line before line', line);
-//     var newLines = lines.slice(0, line);
-//     newLines.push('b=RR:' + bitrate);
-//     newLines.push('b=RS:' + bitrate);
-//     newLines = newLines.concat(lines.slice(line, lines.length));
-//
-//     let returnLines = newLines.join('\n');
-//
-//     console.log(returnLines);
-//
-//     return returnLines;
-// }
-
-// // when button clicked set new bandwidthLimit to session storage and reload
-// bandwidthButton.onclick = async function () {
-//
-//     bandwidthLimit = document.getElementById('bandwidth_input').value;
-//     sessionStorage.setItem('bandwidthLimit', bandwidthLimit * 1000);
-//     location.reload();
-//     //
-//     // initiateRtcStreamingChannel().then(startTimer).then(transmit);
-//     // document.querySelector('#bitratelimit-box').innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit} kb/s`;
-// };
-//
-// // Execute a function when the user releases a key on the keyboard
-// bandwidthInput.addEventListener('keyup', function(event) {
-//     // Number 13 is the "Enter" key on the keyboard
-//     if (event.keyCode === 13) {
-//         // Cancel the default action, if needed
-//         event.preventDefault();
-//         // Trigger the button element with a click
-//         document.getElementById('bandwidth_button').click();
-//     }
-// });
+/**
+ * Sets up local and receiving renderers
+ */
+function configureRender() {
+    canvas.width = videoWidth;
+    canvas.height = videoHeight;
+    keypointCanvas.width = videoWidth;
+    keypointCanvas.height = videoHeight;
+}
 
 
-bindPage().then(initiateRtcStreamingChannel).then(startTimer).then(transmit);
-
-// if (bandwidthLimit == 'unlimited')
-//     document.querySelector('#bitratelimit-box').innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit} kb/s`;
-// else
-//     document.querySelector('#bitratelimit-box').innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit / 1000} kb/s`;
+bindPage().then(initiateRtcStreamingChannel).then(configureRender).then(startTimer).then(transmit);
