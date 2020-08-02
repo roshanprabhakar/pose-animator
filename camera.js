@@ -129,12 +129,7 @@ async function initiateRtcStreamingChannel() {
 
         if (message.length === 2) {
 
-            // console.log("received: ");
-            // console.log(new Float32Array(message[0]));
-            // console.log(new Float32Array(message[1]));
-
-            let pose = reconstructPose(new Float32Array(message[0]), new Float32Array(message[1]));
-            // console.log(JSON.stringify(poses));
+            let pose = reconstructPose(new Float32Array(message[0]), new Uint16Array(message[1]));
 
             // clears the output canvas
             canvasScope.project.clear();
@@ -270,7 +265,7 @@ function deconstructPose(pose) {
     // let positions = [];
 
     let confidences = new Float32Array(18);
-    let positions = new Float32Array(34);
+    let positions = new Uint16Array(34);
 
     confidences[0] = pose.score;
     for (let i = 0; i < pose.keypoints.length; i++) {
