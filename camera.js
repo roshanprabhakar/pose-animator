@@ -133,15 +133,15 @@ async function initiateRtcStreamingChannel() {
             // console.log(new Float32Array(message[0]));
             // console.log(new Float32Array(message[1]));
 
-            let poses = [reconstructPose(new Float32Array(message[0]), new Float32Array(message[1]))];
+            let pose = reconstructPose(new Float32Array(message[0]), new Float32Array(message[1]));
             // console.log(JSON.stringify(poses));
 
             // clears the output canvas
             canvasScope.project.clear();
 
             // projects the poses skeleton on the existing svg skeleton
-            Skeleton.flipPose(poses[0]);
-            illustration.updateSkeleton(poses[0], null);
+            Skeleton.flipPose(pose);
+            illustration.updateSkeleton(pose, null);
             illustration.draw(canvasScope, videoWidth, videoHeight);
             if (guiState.debug.showIllustrationDebug) {
                 illustration.debugDraw(canvasScope);
@@ -244,8 +244,10 @@ async function transmit() {
     // console.log(deconstructedPose[0]);
     // console.log(deconstructedPose[1]);
 
-    channel.send(deconstructedPose[0].buffer);
-    channel.send(deconstructedPose[1].buffer);
+    if (deconstructedPose !== null) {
+        channel.send(deconstructedPose[0].buffer);
+        channel.send(deconstructedPose[1].buffer);
+    }
 
     // // transmit poses representation
     // channel.send(JSON.stringify(poses));
@@ -261,6 +263,8 @@ async function transmit() {
 
 // pass in pose[0]
 function deconstructPose(pose) {
+
+    if (pose == null) return null;
 
     // let confidences = [];
     // let positions = [];
