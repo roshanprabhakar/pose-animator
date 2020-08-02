@@ -129,7 +129,7 @@ async function initiateRtcStreamingChannel() {
 
         if (message.length === 2) {
 
-            let pose = reconstructPose(new Float32Array(message[0]), new Uint16Array(message[1]));
+            let pose = reconstructPose(new Float32Array(message[0]), new Int16Array(message[1]));
 
             // clears the output canvas
             canvasScope.project.clear();
@@ -166,13 +166,14 @@ async function initiateRtcStreamingChannel() {
         offerToReceiveAudio: 0,
         offerToReceiveVideo: 0,
     });
-    offer.sdp = setMediaBitrate(offer.sdp, 'application', bandwidthLimit);
+
+    offer.sdp = setMediaBitrate(offer.sdp, '', bandwidthLimit);
 
     await pc2.setRemoteDescription(offer);
     await pc1.setLocalDescription(offer);
 
     let answer = await pc2.createAnswer();
-    answer.sdp = setMediaBitrate(answer.sdp, 'application', bandwidthLimit);
+    answer.sdp = setMediaBitrate(answer.sdp, '', bandwidthLimit);
 
     await pc1.setRemoteDescription(answer);
     await pc2.setLocalDescription(answer);
@@ -235,10 +236,6 @@ async function transmit() {
 
     let deconstructedPose = deconstructPose(poses[0]);
 
-    // console.log("to be transmitted: ")
-    // console.log(deconstructedPose[0]);
-    // console.log(deconstructedPose[1]);
-
     if (deconstructedPose !== null) {
         channel.send(deconstructedPose[0].buffer);
         channel.send(deconstructedPose[1].buffer);
@@ -265,7 +262,7 @@ function deconstructPose(pose) {
     // let positions = [];
 
     let confidences = new Float32Array(18);
-    let positions = new Uint16Array(34);
+    let positions = new Int16Array(34);
 
     confidences[0] = pose.score;
     for (let i = 0; i < pose.keypoints.length; i++) {
@@ -502,19 +499,27 @@ function startTimer() {
 }
 
 function setMediaBitrate(sdp, media, bitrate) {
+
+    bitrate *= 1000;
+
+    console.log("bandwidth limit: " + bandwidthLimit);
+
     if (bandwidthLimit === 'unlimited') {
         return sdp;
     }
+
     bandwidthLimit = parseInt(bandwidthLimit);
 
     var lines = sdp.split('\n');
     var line = -1;
     for (var i = 0; i < lines.length; i++) {
+        // console.log(lines[i]);
         if (lines[i].indexOf('m=' + media) === 0) {
             line = i;
             break;
         }
     }
+
     if (line === -1) {
         console.debug('Could not find the m line for', media);
         return sdp;
@@ -532,24 +537,35 @@ function setMediaBitrate(sdp, media, bitrate) {
     // If we're on a b line, replace it
     if (lines[line].indexOf('b') === 0) {
         console.debug('Replaced b line at line', line);
-        lines[line] = 'b=AS:' + bitrate;
+        lines[line] = 'b=RS:' + bitrate;
+        lines.splice(line, 0, `b=SS:${bitrate}`);
+        console.log(lines.join('\n'));
         return lines.join('\n');
     }
 
     // Add a new b line
     console.debug('Adding new b line before line', line);
     var newLines = lines.slice(0, line);
-    newLines.push('b=AS:' + bitrate);
+    newLines.push('b=RR:' + bitrate);
+    newLines.push('b=RS:' + bitrate);
     newLines = newLines.concat(lines.slice(line, lines.length));
 
-    return newLines.join('\n');
+    let returnLines = newLines.join('\n');
+
+    console.log(returnLines);
+
+    return returnLines;
 }
 
 // when button clicked set new bandwidthLimit to session storage and reload
-bandwidthButton.onclick = () => {
+bandwidthButton.onclick = async function () {
+
     bandwidthLimit = document.getElementById('bandwidth_input').value;
-    sessionStorage.setItem('bandwidthLimit', bandwidthLimit);
+    sessionStorage.setItem('bandwidthLimit', bandwidthLimit * 1000);
     location.reload();
+    //
+    // initiateRtcStreamingChannel().then(startTimer).then(transmit);
+    // document.querySelector('#bitratelimit-box').innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit} kb/s`;
 };
 
 // Execute a function when the user releases a key on the keyboard
@@ -566,4 +582,4 @@ bandwidthInput.addEventListener('keyup', function(event) {
 
 bindPage().then(initiateRtcStreamingChannel).then(startTimer).then(transmit);
 
-document.querySelector('#bitratelimit-box').innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit} kb/s`;
+document.querySelector('#bitratelimit-box').innerHTML = `<strong>bitrate limit:</strong> ${bandwidthLimit / 1000} kb/s`;
