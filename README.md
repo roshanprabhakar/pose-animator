@@ -25,9 +25,9 @@ The following might be useful if you face issues with the steps above:
 - https://github.com/nodejs/node-gyp/issues/1927#issuecomment-661825834
 - https://github.com/yemount/pose-animator/issues/12#issuecomment-626741765
 
-The second link above does something bad - it no longer allows you to see the original script in chrome which is quite useful for debugging.
+The second link above no longer allows you to see the original script in chrome which is quite useful for debugging.
 
-So a better solution is to NOT add --no-source-maps to package.json and instead replace the file node_modules/paper/dist/paper-full.js with a working copy available at https://pose-animator-demo.firebaseapp.com/node_modules/paper/dist/paper-full.js.
+A better solution would be to NOT add --no-source-maps to package.json and instead replace the file node_modules/paper/dist/paper-full.js with a working copy available at https://pose-animator-demo.firebaseapp.com/node_modules/paper/dist/paper-full.js.
 
 
 ## Platform support
@@ -84,6 +84,16 @@ The conventional codec produces encoded packets that are representations of the 
 We integrated the streaming of poses data into a web-rtc streaming framework, then throttled the stream bandwidth. Conclusively, we see that our method of video streaming allows for smooth, real time connectivity at drastically lower bandwidths (~12 kb/s independent) than those needed by the conventional stream (~300 kb/s resolution dependent). 
 
 Although pose-animator does not provide a suitable animator for replacing today's streaming standard, this project demonstrates the potential of syncing an animator with a transmission service to provide a better video conferencing experience than that which exists today. 
+
+pose-animator stream (unbounded bandwidth) <br>
+![Pose animator stream gif](./pose-animator-stream.gif) <br>
+
+
+conventional stream (bounded by pose animator maximum consumed bandwidth) <br>
+![Conventional stream gif](./generic-stream.gif) <br>
+
+
+
 
 # Animate your own design
 
