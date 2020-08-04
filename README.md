@@ -85,14 +85,16 @@ We integrated the streaming of poses data into a web-rtc streaming framework, th
 
 Although pose-animator does not provide a suitable animator for replacing today's streaming standard, this project demonstrates the potential of syncing an animator with a transmission service to provide a better video conferencing experience than that which exists today. 
 
-pose-animator stream (unbounded bandwidth) <br>
+Pose-animator stream (unbounded bandwidth) <br>
 ![Pose animator stream gif](resources/gifs/pose-animator-stream.gif) <br>
 
 
-conventional stream (bounded by pose animator maximum consumed bandwidth) <br>
-![Conventional stream gif](resources/gifs/generic-stream.gif) <br>
+Conventional stream (bounded by pose animator maximum consumed bandwidth) <br>
+![Conventional stream bounded gif](resources/gifs/generic-stream.gif) <br>
 
 
+Conventional stream (unbounded bandwidth) <br>
+![Conventional stream unbounded gif](resources/gifs/generic-uncapped-stream.gif) <br>
 
 
 # Animate your own design
