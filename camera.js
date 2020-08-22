@@ -18,6 +18,7 @@
 
 import * as posenet_module from '@tensorflow-models/posenet';
 import * as facemesh_module from '@tensorflow-models/facemesh';
+import * as tf from '@tensorflow/tfjs';
 import * as paper from 'paper';
 import dat from 'dat.gui';
 import Stats from 'stats.js';
@@ -127,11 +128,12 @@ async function initiateRtcStreamingChannel() {
 
     // for messages received, parse the transmitted arrays as poses and project them
     let message = [];
+    let faceDetection;
     dataChannel.onmessage = function(event) {
 
         message.push(event.data);
 
-        if (message.length === 2) {
+        if (message.length === 3) {
 
             let pose = reconstructPose(new Int16Array(message[0]), new Int16Array(message[1]));
 
@@ -151,6 +153,15 @@ async function initiateRtcStreamingChannel() {
                 canvasHeight / videoHeight,
                 new canvasScope.Point(0, 0));
 
+
+            faceDetection = JSON.parse(message[2]);
+
+            if (faceDetection && faceDetection.length > 0) {
+                let face = Skeleton.toFaceFrame(faceDetection[0]);
+                illustration.updateSkeleton(pose, face);
+            }
+
+            illustration.draw(canvasScope, videoWidth, videoHeight);
             message = [];
         }
     };
@@ -189,6 +200,11 @@ async function transmit() {
 
     // Begin monitoring code for frames per second
     stats.begin();
+
+    // get face information
+    const input = tf.browser.fromPixels(canvas);
+    faceDetection = await facemesh.estimateFaces(input, false, false);
+    input.dispose();
 
     // initializes poses
     let poses = [];
@@ -234,6 +250,8 @@ async function transmit() {
         channel.send(deconstructedPose[0].buffer);
         channel.send(deconstructedPose[1].buffer);
     }
+
+    channel.send(JSON.stringify(faceDetection));
 
     // End monitoring code for frames per second
     stats.end();
