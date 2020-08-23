@@ -24,17 +24,13 @@ import dat from 'dat.gui';
 import Stats from 'stats.js';
 import 'babel-polyfill';
 
-import {
-    drawKeypoints,
-    drawSkeleton,
-    isMobile,
-    setStatusText,
-    toggleLoadingUI,
-} from './utils/demoUtils';
+import {drawKeypoints, drawPoint, drawSkeleton, isMobile, toggleLoadingUI, setStatusText} from './utils/demoUtils';
+
 import {SVGUtils} from './utils/svgUtils';
 import {PoseIllustration} from './illustrationGen/illustration';
-import {Skeleton} from './illustrationGen/skeleton';
+import {Skeleton, facePartName2Index} from './illustrationGen/skeleton';
 import {FileUtils} from './utils/fileUtils';
+
 
 import * as girlSVG from './resources/illustration/girl.svg';
 import * as boySVG from './resources/illustration/boy.svg';
@@ -135,6 +131,7 @@ async function initiateRtcStreamingChannel() {
 
         if (message.length === 3) {
 
+            // builds pose object
             let pose = reconstructPose(new Int16Array(message[0]), new Int16Array(message[1]));
 
             // clears the output canvas
@@ -143,7 +140,7 @@ async function initiateRtcStreamingChannel() {
             // projects the poses skeleton on the existing svg skeleton
             Skeleton.flipPose(pose);
             illustration.updateSkeleton(pose, null);
-            illustration.draw(canvasScope, videoWidth, videoHeight);
+            // illustration.draw(canvasScope, videoWidth, videoHeight);
             if (guiState.debug.showIllustrationDebug) {
                 illustration.debugDraw(canvasScope);
             }
@@ -152,7 +149,6 @@ async function initiateRtcStreamingChannel() {
                 canvasWidth / videoWidth,
                 canvasHeight / videoHeight,
                 new canvasScope.Point(0, 0));
-
 
             faceDetection = JSON.parse(message[2]);
 
@@ -231,7 +227,7 @@ async function transmit() {
     videoCtx.drawImage(video, 0, 0, videoWidth, videoHeight);
     videoCtx.restore();
 
-    // projects pose onto svg
+    // projects pose and face onto svg
     keypointCtx.clearRect(0, 0, videoWidth, videoHeight);
     if (guiState.debug.showDetectionDebug) {
         poses.forEach(({score, keypoints}) => {
@@ -239,6 +235,13 @@ async function transmit() {
                 drawKeypoints(keypoints, minPartConfidence, keypointCtx);
                 drawSkeleton(keypoints, minPartConfidence, keypointCtx);
             }
+        });
+        faceDetection.forEach(face => {
+            Object.values(facePartName2Index).forEach(index => {
+                let p = face.scaledMesh[index];
+                drawPoint(keypointCtx, p[1], p[0], 2, 'red');
+            });
+
         });
     }
 
