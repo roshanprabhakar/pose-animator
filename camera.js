@@ -15,6 +15,8 @@
  * =============================================================================
  */
 
+// TODO implement finding multiple poses
+// TODO modularize receive and transmit
 
 import * as posenet_module from '@tensorflow-models/posenet';
 import * as facemesh_module from '@tensorflow-models/facemesh';
@@ -150,14 +152,21 @@ async function initiateRtcStreamingChannel() {
                 canvasHeight / videoHeight,
                 new canvasScope.Point(0, 0));
 
-            faceDetection = JSON.parse(message[2]);
+            // faceDetection = JSON.parse(message[2]);
+            let faceData = message[2];
+            if (faceData != 0) {
+                let face = JSON.parse(message[2]);
 
-            if (faceDetection && faceDetection.length > 0) {
-                let face = Skeleton.toFaceFrame(faceDetection[0]);
-                illustration.updateSkeleton(pose, face);
+                if (face != null) {
+                    illustration.updateSkeleton(pose, face);
+                }
+
+                // if (faceDetection && faceDetection.length > 0) {
+                //     let face = Skeleton.toFaceFrame(faceDetection[0]);
+                //     illustration.updateSkeleton(pose, face);
+                // }
+                illustration.draw(canvasScope, videoWidth, videoHeight);
             }
-
-            illustration.draw(canvasScope, videoWidth, videoHeight);
             message = [];
         }
     };
@@ -237,11 +246,15 @@ async function transmit() {
             }
         });
         faceDetection.forEach(face => {
-            Object.values(facePartName2Index).forEach(index => {
-                let p = face.scaledMesh[index];
+            for (let i = 0; i < face.scaledMesh.length; i++) {
+                let p = face.scaledMesh[i];
                 drawPoint(keypointCtx, p[1], p[0], 2, 'red');
-            });
-
+            }
+            //
+            // Object.values(facePartName2Index).forEach(index => {
+            //     let p = face.scaledMesh[index];
+            //     drawPoint(keypointCtx, p[1], p[0], 2, 'red');
+            // });
         });
     }
 
@@ -254,7 +267,16 @@ async function transmit() {
         channel.send(deconstructedPose[1].buffer);
     }
 
-    channel.send(JSON.stringify(faceDetection));
+    // channel.send(JSON.stringify(faceDetection));
+
+    if (faceDetection && faceDetection.length > 0) {
+        let face = Skeleton.toFaceFrame(faceDetection[0]);
+        channel.send(JSON.stringify(face));
+    } else {
+        channel.send(0);
+    }
+
+    // channel.send(JSON.stringify(Skeleton.toFaceFrame(faceDetection[0])));
 
     // End monitoring code for frames per second
     stats.end();
