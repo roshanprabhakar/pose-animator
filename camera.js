@@ -131,7 +131,7 @@ async function initiateRtcStreamingChannel() {
 
         message.push(event.data);
 
-        if (message.length === 4) {
+        if (message.length === 2) {
 
             // builds pose object
             let pose = reconstructPose(new Int16Array(message[0]), new Int16Array(message[1]));
@@ -141,8 +141,7 @@ async function initiateRtcStreamingChannel() {
 
             // projects the poses skeleton on the existing svg skeleton
             Skeleton.flipPose(pose);
-            illustration.updateSkeleton(pose, null);
-            // illustration.draw(canvasScope, videoWidth, videoHeight);
+
             if (guiState.debug.showIllustrationDebug) {
                 illustration.debugDraw(canvasScope);
             }
@@ -152,24 +151,9 @@ async function initiateRtcStreamingChannel() {
                 canvasHeight / videoHeight,
                 new canvasScope.Point(0, 0));
 
-            // faceDetection = JSON.parse(message[2]);
-            let faceData = message[2];
-            if (faceData !== 0) {
+            illustration.updateSkeleton(pose, null);
+            illustration.draw(canvasScope, videoWidth, videoHeight);
 
-
-                let face = {
-                    positions: reconstructFaceData(message[2]),
-                    faceInViewConfidence: message[3]
-                };
-
-                illustration.updateSkeleton(pose, face);
-
-                // if (faceDetection && faceDetection.length > 0) {
-                //     let face = Skeleton.toFaceFrame(faceDetection[0]);
-                //     illustration.updateSkeleton(pose, face);
-                // }
-                illustration.draw(canvasScope, videoWidth, videoHeight);
-            }
             message = [];
         }
     };
@@ -200,17 +184,6 @@ async function initiateRtcStreamingChannel() {
     await pc2.setLocalDescription(answer);
 }
 
-// in: buffer for a Uint32Array
-function reconstructFaceData(positionsBuffer) {
-    let view = new Float32Array(positionsBuffer);
-    let out = [];
-
-    view.forEach(coordinate => {
-        out.push(coordinate);
-    });
-
-    return out;
-}
 
 /**
  * Loops the transmission of deconstructed poses
@@ -220,11 +193,6 @@ async function transmit() {
 
     // Begin monitoring code for frames per second
     stats.begin();
-
-    // get face information
-    const input = tf.browser.fromPixels(canvas);
-    faceDetection = await facemesh.estimateFaces(input, false, false);
-    input.dispose();
 
     // initializes poses
     let poses = [];
@@ -260,17 +228,6 @@ async function transmit() {
                 drawSkeleton(keypoints, minPartConfidence, keypointCtx);
             }
         });
-        faceDetection.forEach(face => {
-            for (let i = 0; i < face.scaledMesh.length; i++) {
-                let p = face.scaledMesh[i];
-                drawPoint(keypointCtx, p[1], p[0], 2, 'red');
-            }
-            //
-            // Object.values(facePartName2Index).forEach(index => {
-            //     let p = face.scaledMesh[index];
-            //     drawPoint(keypointCtx, p[1], p[0], 2, 'red');
-            // });
-        });
     }
 
     // converts pose to streamable buffers
@@ -281,20 +238,6 @@ async function transmit() {
         channel.send(deconstructedPose[0].buffer);
         channel.send(deconstructedPose[1].buffer);
     }
-
-    // channel.send(JSON.stringify(faceDetection));
-
-    if (faceDetection && faceDetection.length > 0) {
-        // let face = Skeleton.toFaceFrame(faceDetection[0]);
-        let face = Skeleton.toBufferedFaceFrame(faceDetection[0]);
-        channel.send(face.positions.buffer);
-        channel.send(face.faceInViewConfidence);
-    } else {
-        channel.send(0);
-        channel.send(0);
-    }
-
-    // channel.send(JSON.stringify(Skeleton.toFaceFrame(faceDetection[0])));
 
     // End monitoring code for frames per second
     stats.end();
