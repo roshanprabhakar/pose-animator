@@ -23,7 +23,7 @@ import { ColorUtils } from '../utils/colorUtils';
 const MIN_POSE_SCORE = 0.1;
 const MIN_FACE_SCORE = 0.8;
 
-const posePartNames = ['leftAnkle', 'leftKnee', 'leftHip', 'leftWrist', 'leftElbow', 'leftShoulder', 
+const posePartNames = ['leftAnkle', 'leftKnee', 'leftHip', 'leftWrist', 'leftElbow', 'leftShoulder',
     'rightAnkle', 'rightKnee', 'rightHip', 'rightWrist', 'rightElbow', 'rightShoulder',
     'leftEar', 'rightEar'];
 
@@ -36,28 +36,28 @@ export const facePartName2Index = {
     'leftTop1': 284,
     'rightJaw0': 21,
     'rightJaw1': 162,
-    'rightJaw2': 127, 
+    'rightJaw2': 127,
     'rightJaw3': 234,
-    'rightJaw4': 132, 
-    'rightJaw5': 172, 
+    'rightJaw4': 132,
+    'rightJaw5': 172,
     'rightJaw6': 150,
     'rightJaw7': 176,
     'jawMid': 152,   // 0 - 8
-    'leftJaw7': 400, 
-    'leftJaw6': 379, 
-    'leftJaw5': 397, 
+    'leftJaw7': 400,
+    'leftJaw6': 379,
+    'leftJaw5': 397,
     'leftJaw4': 361,
     'leftJaw3': 454,
     'leftJaw2': 356,
     'leftJaw1': 389,
     'leftJaw0': 251, // 9 - 16
-    'rightBrow0': 46, 
-    'rightBrow1': 53, 
+    'rightBrow0': 46,
+    'rightBrow1': 53,
     'rightBrow2': 52,
     'rightBrow3': 65,
     'rightBrow4': 55, // 17 - 21
     'leftBrow4': 285,
-    'leftBrow3': 295, 
+    'leftBrow3': 295,
     'leftBrow2': 282,
     'leftBrow1': 283,
     'leftBrow0': 276, // 22 - 26
@@ -67,7 +67,7 @@ export const facePartName2Index = {
     'nose3': 5, // 27 - 30
     'rightNose0': 48,
     'rightNose1': 220,
-    'nose4': 4, 
+    'nose4': 4,
     'leftNose1': 440,
     'leftNose0': 278, // 31 - 35
     'rightEye0': 33,
@@ -80,7 +80,7 @@ export const facePartName2Index = {
     'leftEye2': 385,
     'leftEye1': 387,
     'leftEye0': 263,
-    'leftEye5': 373, 
+    'leftEye5': 373,
     'leftEye4': 380, // 42 - 47
     'rightMouthCorner': 61,
     'rightUpperLipTop0': 40,
@@ -99,7 +99,7 @@ export const facePartName2Index = {
     'upperLipBottomMid': 13,
     'leftUpperLipBottom1': 311,
     'leftMiddleLip': 308, // 60 - 64
-    'leftLowerLipTop0': 402, 
+    'leftLowerLipTop0': 402,
     'lowerLipTopMid': 14,
     'rightLowerLipTop0': 178, // 65 - 67
 };
@@ -546,7 +546,7 @@ export class Skeleton {
         }
         return true;
     }
-    
+
     updateFaceParts(face) {
         let posLeftEar = this.parts['leftEar'].position;
         let posRightEar = this.parts['rightEar'].position;
@@ -752,5 +752,19 @@ export class Skeleton {
             frame.positions.push(p[1]);
         }
         return frame;
+    }
+
+    static toBufferedFaceFrame(faceDetection) {
+        let frame = {
+            positions: new Float32Array(facePartNames.length * 2),
+            faceInViewConfidence: faceDetection.faceInViewConfidence
+        }
+        for (let i = 0; i < facePartNames.length; i++) {
+            let partName = facePartNames[i];
+            let p = faceDetection.scaledMesh[facePartName2Index[partName]];
+            frame.positions[i * 2] = p[0];
+            frame.positions[i * 2 + 1] = p[1];
+        }
+        return frame
     }
 }

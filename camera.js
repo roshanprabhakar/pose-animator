@@ -131,7 +131,7 @@ async function initiateRtcStreamingChannel() {
 
         message.push(event.data);
 
-        if (message.length === 3) {
+        if (message.length === 4) {
 
             // builds pose object
             let pose = reconstructPose(new Int16Array(message[0]), new Int16Array(message[1]));
@@ -154,12 +154,15 @@ async function initiateRtcStreamingChannel() {
 
             // faceDetection = JSON.parse(message[2]);
             let faceData = message[2];
-            if (faceData != 0) {
-                let face = JSON.parse(message[2]);
+            if (faceData !== 0) {
 
-                if (face != null) {
-                    illustration.updateSkeleton(pose, face);
-                }
+
+                let face = {
+                    positions: reconstructFaceData(message[2]),
+                    faceInViewConfidence: message[3]
+                };
+
+                illustration.updateSkeleton(pose, face);
 
                 // if (faceDetection && faceDetection.length > 0) {
                 //     let face = Skeleton.toFaceFrame(faceDetection[0]);
@@ -195,6 +198,18 @@ async function initiateRtcStreamingChannel() {
 
     await pc1.setRemoteDescription(answer);
     await pc2.setLocalDescription(answer);
+}
+
+// in: buffer for a Uint32Array
+function reconstructFaceData(positionsBuffer) {
+    let view = new Float32Array(positionsBuffer);
+    let out = [];
+
+    view.forEach(coordinate => {
+        out.push(coordinate);
+    });
+
+    return out;
 }
 
 /**
@@ -270,9 +285,12 @@ async function transmit() {
     // channel.send(JSON.stringify(faceDetection));
 
     if (faceDetection && faceDetection.length > 0) {
-        let face = Skeleton.toFaceFrame(faceDetection[0]);
-        channel.send(JSON.stringify(face));
+        // let face = Skeleton.toFaceFrame(faceDetection[0]);
+        let face = Skeleton.toBufferedFaceFrame(faceDetection[0]);
+        channel.send(face.positions.buffer);
+        channel.send(face.faceInViewConfidence);
     } else {
+        channel.send(0);
         channel.send(0);
     }
 
