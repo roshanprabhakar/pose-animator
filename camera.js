@@ -15,9 +15,6 @@
  * =============================================================================
  */
 
-// TODO implement finding multiple poses
-// TODO modularize receive and transmit
-
 import * as posenet_module from '@tensorflow-models/posenet';
 import * as facemesh_module from '@tensorflow-models/facemesh';
 import * as tf from '@tensorflow/tfjs';
