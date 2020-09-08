@@ -27,7 +27,35 @@ The following might be useful if you face issues with the steps above:
 
 The second link above no longer allows you to see the original script in chrome which is quite useful for debugging.
 
-A better solution would be to NOT add --no-source-maps to package.json and instead replace the file node_modules/paper/dist/paper-full.js with a working copy available at https://pose-animator-demo.firebaseapp.com/node_modules/paper/dist/paper-full.js.
+A better solution would be to NOT add --no-source-maps to package.json and instead replace the file node_modules/paper/dist/paper-full.js with a working copy available in this repository [paper-full.js](paper-full.js).
+
+# STEM to SHTEM 2020 Adaptation
+
+**Blog post available [here](https://theinformaticists.com/2020/08/25/keypoint-centric-video-processing-for-reducing-net-latency-in-video-streaming/)** 
+
+Our goal was to provide a modification of the conventional video stream pipeline which competes with the original standard. <br>
+
+We decided to modify the following pipeline: <br>
+*Packet encoding &#8594; transmission of encoded data &#8594; Packet Decoding*
+
+The premise of our project revolves around the theory that reducing the amount of transmitted data (and consequentially increasing the encoding/decoding computation time) will contribute to a net decrease in capture to render latency.
+
+The conventional codec produces encoded packets that are representations of the entirety of the initial frame, with no biases implicit to any one feature within the frame. This allows for the near complete reconstruciton at the rendering end with the expense of creating encoded data that fully represents the video feed and thus is greater than it has to be for any specific stream use-case. With Pose Animator, we are able to stream data solely related to the structure of a person contained within the frame. Doing so allows us to drastically reduce the size of transmitted data, even if it does increase the encoding/pose-extracting and decoding/pose-projection computation induced time. 
+
+We integrated the streaming of poses data into a web-rtc streaming framework, then throttled the stream bandwidth. Conclusively, we see that our method of video streaming allows for smooth, real time connectivity at drastically lower bandwidths (~12 kb/s independent) than those needed by the conventional stream (~300 kb/s resolution dependent). 
+
+Although pose-animator does not provide a suitable animator for replacing today's streaming standard, this project demonstrates the potential of syncing an animator with a transmission service to provide a better video conferencing experience than that which exists today. 
+
+Pose-animator stream (unbounded bandwidth) <br>
+![Pose animator stream gif](resources/gifs/pose-animator-stream.gif) <br>
+
+
+Conventional stream (bounded by pose animator maximum consumed bandwidth) <br>
+![Conventional stream bounded gif](resources/gifs/generic-stream.gif) <br>
+
+
+Conventional stream (unbounded bandwidth) <br>
+![Conventional stream unbounded gif](resources/gifs/generic-uncapped-stream.gif) <br>
 
 
 ## Platform support
@@ -69,33 +97,6 @@ The camera demo animates a 2D avatar in real-time from a webcam video stream.
 ### Demo 2: [Static image](https://pose-animator-demo.firebaseapp.com/static_image.html)
 
 The static image demo shows the avatar positioned from a single image.
-
-# STEM to SHTEM 2020 Adaptation
-
-Our goal was to provide a modification of the conventional video stream pipeline which competes with the original standard. <br>
-
-We decided to modify the following pipeline: <br>
-*Packet encoding &#8594; transmission of encoded data &#8594; Packet Decoding*
-
-The premise of our project revolves around the theory that reducing the amount of transmitted data (and consequentially increasing the encoding/decoding computation time) will contribute to a net decrease in capture to render latency.
-
-The conventional codec produces encoded packets that are representations of the entirety of the initial frame, with no biases implicit to any one feature within the frame. This allows for the near complete reconstruciton at the rendering end with the expense of creating encoded data that fully represents the video feed and thus is greater than it has to be for any specific stream use-case. With Pose Animator, we are able to stream data solely related to the structure of a person contained within the frame. Doing so allows us to drastically reduce the size of transmitted data, even if it does increase the encoding/pose-extracting and decoding/pose-projection computation induced time. 
-
-We integrated the streaming of poses data into a web-rtc streaming framework, then throttled the stream bandwidth. Conclusively, we see that our method of video streaming allows for smooth, real time connectivity at drastically lower bandwidths (~12 kb/s independent) than those needed by the conventional stream (~300 kb/s resolution dependent). 
-
-Although pose-animator does not provide a suitable animator for replacing today's streaming standard, this project demonstrates the potential of syncing an animator with a transmission service to provide a better video conferencing experience than that which exists today. 
-
-Pose-animator stream (unbounded bandwidth) <br>
-![Pose animator stream gif](resources/gifs/pose-animator-stream.gif) <br>
-
-
-Conventional stream (bounded by pose animator maximum consumed bandwidth) <br>
-![Conventional stream bounded gif](resources/gifs/generic-stream.gif) <br>
-
-
-Conventional stream (unbounded bandwidth) <br>
-![Conventional stream unbounded gif](resources/gifs/generic-uncapped-stream.gif) <br>
-
 
 # Animate your own design
 
